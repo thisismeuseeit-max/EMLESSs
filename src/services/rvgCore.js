@@ -208,8 +208,8 @@ export class RVGCore {
   static generateSubscriptionPayload(client, hostHeader) {
     if (!client) return null;
 
-    const configs = this.generateClientConfigs(client, hostHeader);
-    const rawUris = configs.map(c => c.uri).join('\n');
+    const configs = this.generateClientConfigs(client, hostHeader) || [];
+    const rawUris = configs.map(c => c.uri).filter(Boolean).join('\n');
     const base64Encoded = Buffer.from(rawUris, 'utf-8').toString('base64');
 
     const totalBytes = Math.floor((client.quotaGB || 50) * 1024 * 1024 * 1024);

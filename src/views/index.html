@@ -1848,59 +1848,95 @@
         const res = await fetch('/api/dashboard');
         if (!res.ok) return;
         const data = await res.json();
+        if (!data || !data.stats) return;
         appState = data;
 
         const stats = data.stats;
-        document.getElementById('dashConnections').innerText = stats.counts.activeConnections;
-        document.getElementById('dashCoreConn').innerText = stats.counts.activeConnections - (stats.telegramProxy.connections || 0);
-        document.getElementById('dashTgConn').innerText = stats.telegramProxy.connections || 0;
+        const connEl = document.getElementById('dashConnections');
+        if (connEl) connEl.innerText = stats.counts?.activeConnections ?? 0;
+
+        const coreConnEl = document.getElementById('dashCoreConn');
+        if (coreConnEl) coreConnEl.innerText = (stats.counts?.activeConnections ?? 0) - (stats.telegramProxy?.connections || 0);
+
+        const tgConnEl = document.getElementById('dashTgConn');
+        if (tgConnEl) tgConnEl.innerText = stats.telegramProxy?.connections || 0;
         
-        document.getElementById('dashTotalTraffic').innerText = stats.totalTraffic.totalTB;
-        document.getElementById('dashUploadTotal').innerText = `${stats.totalTraffic.uploadGB} GB`;
-        document.getElementById('dashDownloadTotal').innerText = `${stats.totalTraffic.downloadGB} GB`;
+        const totTrafEl = document.getElementById('dashTotalTraffic');
+        if (totTrafEl) totTrafEl.innerText = stats.totalTraffic?.totalTB || '0 TB';
 
-        document.getElementById('dashActiveClients').innerText = stats.counts.activeClients;
-        document.getElementById('dashTotalClients').innerText = stats.counts.totalClients;
-        document.getElementById('dashActiveInbounds').innerText = stats.counts.activeConfigurations;
-        document.getElementById('dashUptime').innerText = stats.uptimeFormatted;
+        const upTotEl = document.getElementById('dashUploadTotal');
+        if (upTotEl) upTotEl.innerText = `${stats.totalTraffic?.uploadGB || 0} GB`;
 
-        document.getElementById('headerUpSpeed').innerText = stats.liveBandwidth.uploadMBs;
-        document.getElementById('headerDownSpeed').innerText = stats.liveBandwidth.downloadMBs;
+        const downTotEl = document.getElementById('dashDownloadTotal');
+        if (downTotEl) downTotEl.innerText = `${stats.totalTraffic?.downloadGB || 0} GB`;
 
-        document.getElementById('sideDomain').innerText = stats.domain || stats.serverIp;
-        document.getElementById('sideUptime').innerText = stats.uptimeFormatted;
+        const actCliEl = document.getElementById('dashActiveClients');
+        if (actCliEl) actCliEl.innerText = stats.counts?.activeClients ?? 0;
+
+        const totCliEl = document.getElementById('dashTotalClients');
+        if (totCliEl) totCliEl.innerText = stats.counts?.totalClients ?? 0;
+
+        const actInbEl = document.getElementById('dashActiveInbounds');
+        if (actInbEl) actInbEl.innerText = stats.counts?.activeConfigurations ?? 0;
+
+        const uptimeEl = document.getElementById('dashUptime');
+        if (uptimeEl) uptimeEl.innerText = stats.uptimeFormatted || '0s';
+
+        const upSpdEl = document.getElementById('headerUpSpeed');
+        if (upSpdEl) upSpdEl.innerText = stats.liveBandwidth?.uploadMBs ?? '0.0';
+
+        const downSpdEl = document.getElementById('headerDownSpeed');
+        if (downSpdEl) downSpdEl.innerText = stats.liveBandwidth?.downloadMBs ?? '0.0';
+
+        const sideDomEl = document.getElementById('sideDomain');
+        if (sideDomEl) sideDomEl.innerText = stats.domain || stats.serverIp || 'gateway.emless.network';
+
+        const sideUpEl = document.getElementById('sideUptime');
+        if (sideUpEl) sideUpEl.innerText = stats.uptimeFormatted || '0s';
 
         // MTProto Header badge
-        document.getElementById('dashTgPortText').innerText = `:${stats.telegramProxy.port}`;
-        document.getElementById('dashTgBadge').innerText = stats.telegramProxy.status.toUpperCase();
-        document.getElementById('dashTgBadge').className = stats.telegramProxy.status === 'running' 
-          ? 'px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-          : 'px-2 py-0.5 text-[10px] font-bold rounded-full bg-red-500/10 text-red-400 border border-red-500/20';
+        if (stats.telegramProxy) {
+          const dashTgPort = document.getElementById('dashTgPortText');
+          if (dashTgPort) dashTgPort.innerText = `:${stats.telegramProxy.port || 8444}`;
 
-        document.getElementById('headerTgPort').innerText = `:${stats.telegramProxy.port}`;
-        document.getElementById('headerTgDot').className = stats.telegramProxy.status === 'running'
-          ? 'w-2 h-2 rounded-full bg-emerald-400'
-          : 'w-2 h-2 rounded-full bg-red-400';
+          const dashTgBadge = document.getElementById('dashTgBadge');
+          if (dashTgBadge) {
+            dashTgBadge.innerText = (stats.telegramProxy.status || 'running').toUpperCase();
+            dashTgBadge.className = stats.telegramProxy.status === 'running' 
+              ? 'px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+              : 'px-2 py-0.5 text-[10px] font-bold rounded-full bg-red-500/10 text-red-400 border border-red-500/20';
+          }
+
+          const headerTgPort = document.getElementById('headerTgPort');
+          if (headerTgPort) headerTgPort.innerText = `:${stats.telegramProxy.port || 8444}`;
+
+          const headerTgDot = document.getElementById('headerTgDot');
+          if (headerTgDot) {
+            headerTgDot.className = stats.telegramProxy.status === 'running'
+              ? 'w-2 h-2 rounded-full bg-emerald-400'
+              : 'w-2 h-2 rounded-full bg-red-400';
+          }
+        }
 
         // Render Inbounds in Dashboard
         const inbContainer = document.getElementById('dashInboundsList');
-        if (inbContainer) {
+        if (inbContainer && Array.isArray(data.inbounds)) {
           inbContainer.innerHTML = data.inbounds.map(i => `
             <div class="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between text-xs">
               <div class="flex items-center gap-2.5">
                 <span class="w-2 h-2 rounded-full ${i.enabled ? 'bg-emerald-400' : 'bg-white/20'}"></span>
                 <div>
-                  <div class="font-bold text-white">${i.name}</div>
-                  <div class="text-[10px] text-white/50 uppercase mono">${i.protocol} · ${i.transport} · Port ${i.port}</div>
+                  <div class="font-bold text-white">${i.name || 'Unnamed'}</div>
+                  <div class="text-[10px] text-white/50 uppercase mono">${i.protocol || 'vless'} · ${i.transport || 'tcp'} · Port ${i.port || ''}</div>
                 </div>
               </div>
-              <span class="mono text-white/70">${i.totalTraffic}</span>
+              <span class="mono text-white/70">${i.totalTraffic || '0 GB'}</span>
             </div>
           `).join('');
         }
 
         // Update Chart
-        if (trafficChartInstance && stats.liveBandwidth.history) {
+        if (trafficChartInstance && stats.liveBandwidth && Array.isArray(stats.liveBandwidth.history)) {
           const labels = stats.liveBandwidth.history.map(h => h.time);
           const upData = stats.liveBandwidth.history.map(h => h.upload);
           const downData = stats.liveBandwidth.history.map(h => h.download);
@@ -1981,15 +2017,21 @@
       const body = document.getElementById('connectionsTableBody');
       if (!body) return;
 
-      body.innerHTML = data.connections.map(c => `
+      const connections = (data && Array.isArray(data.connections)) ? data.connections : [];
+      if (connections.length === 0) {
+        body.innerHTML = `<tr><td colspan="8" class="py-6 text-center text-xs text-white/40">No active real-time connections recorded</td></tr>`;
+        return;
+      }
+
+      body.innerHTML = connections.map(c => `
         <tr class="hover:bg-white/5 transition-colors">
-          <td class="py-3 px-4 font-bold text-white">${c.client}</td>
-          <td class="py-3 px-4 text-white/70">${c.configuration}</td>
-          <td class="py-3 px-4 mono text-pink-300 font-bold">${c.protocol}</td>
-          <td class="py-3 px-4 mono text-cyan-400">${c.transport}</td>
-          <td class="py-3 px-4 mono text-white/60">${c.remoteAddress}</td>
-          <td class="py-3 px-4 mono text-emerald-400">${c.traffic}</td>
-          <td class="py-3 px-4 mono text-white/50">${c.duration}</td>
+          <td class="py-3 px-4 font-bold text-white">${c.client || 'Client'}</td>
+          <td class="py-3 px-4 text-white/70">${c.configuration || '-'}</td>
+          <td class="py-3 px-4 mono text-pink-300 font-bold">${c.protocol || 'VLESS'}</td>
+          <td class="py-3 px-4 mono text-cyan-400">${c.transport || 'TCP'}</td>
+          <td class="py-3 px-4 mono text-white/60">${c.remoteAddress || '-'}</td>
+          <td class="py-3 px-4 mono text-emerald-400">${c.traffic || '0 KB'}</td>
+          <td class="py-3 px-4 mono text-white/50">${c.duration || '0s'}</td>
           <td class="py-3 px-4 text-center">
             <button onclick="terminateConn('${c.id}')" class="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-300 rounded-lg border border-red-500/20 text-[11px] font-semibold cursor-pointer">
               Terminate
@@ -2013,7 +2055,13 @@
         const grid = document.getElementById('inboundsGrid');
         if (!grid) return;
 
-        grid.innerHTML = data.inbounds.map(i => {
+        const inbounds = (data && Array.isArray(data.inbounds)) ? data.inbounds : [];
+        if (inbounds.length === 0) {
+          grid.innerHTML = `<div class="col-span-full py-8 text-center text-xs text-white/40">No inbound configurations deployed yet. Click "+ Add Inbound" to configure.</div>`;
+          return;
+        }
+
+        grid.innerHTML = inbounds.map(i => {
           const isCloak = i.transportMode === 'cloak_ws';
           const modeBadge = isCloak 
             ? `<span class="px-2 py-0.5 text-[9px] font-bold rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 mono uppercase">CLOAK WS</span>`
@@ -2216,12 +2264,13 @@
         const body = document.getElementById('clientsTableBody');
         if (!body) return;
 
-        if (!data.clients || data.clients.length === 0) {
+        const clients = (data && Array.isArray(data.clients)) ? data.clients : [];
+        if (clients.length === 0) {
           body.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-xs text-white/40">No client accounts created yet. Click "+ Add Client" to generate credentials.</td></tr>`;
           return;
         }
 
-        body.innerHTML = data.clients.map(c => {
+        body.innerHTML = clients.map(c => {
           const usedTotal = +((c.usedDownloadGB || 0) + (c.usedUploadGB || 0)).toFixed(2);
           const quota = c.quotaGB || 50;
           const pct = Math.min(100, Math.round((usedTotal / (quota || 1)) * 100));
@@ -2230,10 +2279,10 @@
           return `
             <tr class="hover:bg-white/5 transition-colors">
               <td class="py-3 px-4">
-                <div class="font-bold text-white">${c.email}</div>
+                <div class="font-bold text-white">${c.email || 'Unnamed'}</div>
                 <div class="text-[10px] text-white/40 mono">Token: ${c.subToken ? c.subToken.substring(0, 8) + '...' : 'none'}</div>
               </td>
-              <td class="py-3 px-4 mono text-[11px] text-white/60 truncate max-w-[140px]" title="${c.uuid}">${c.uuid}</td>
+              <td class="py-3 px-4 mono text-[11px] text-white/60 truncate max-w-[140px]" title="${c.uuid || ''}">${c.uuid || '-'}</td>
               <td class="py-3 px-4">
                 <div class="text-xs text-white mono font-semibold">${usedTotal} / ${quota} GB</div>
                 <div class="w-24 h-1.5 bg-white/10 rounded-full mt-1 overflow-hidden">
@@ -2612,59 +2661,102 @@
 
     // 6. Traffic View
     async function fetchTraffic() {
-      const res = await fetch('/api/traffic');
-      const data = await res.json();
+      try {
+        const res = await fetch('/api/traffic');
+        if (!res.ok) return;
+        const data = await res.json();
 
-      const userList = document.getElementById('trafficUserList');
-      if (userList) {
-        userList.innerHTML = data.userUsage.map(u => `
-          <div>
-            <div class="flex justify-between text-xs font-semibold mb-1">
-              <span class="text-white">${u.email}</span>
-              <span class="mono text-white/70">${u.usedTotalGB} / ${u.quotaGB} GB (${u.percent}%)</span>
-            </div>
-            <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
-              <div class="h-full bg-accent-gradient rounded-full" style="width: ${u.percent}%"></div>
-            </div>
-          </div>
-        `).join('');
-      }
+        const userList = document.getElementById('trafficUserList');
+        if (userList) {
+          const userUsage = (data && Array.isArray(data.userUsage)) ? data.userUsage : [];
+          if (userUsage.length === 0) {
+            userList.innerHTML = `<div class="text-xs text-white/40 py-2">No user traffic records</div>`;
+          } else {
+            userList.innerHTML = userUsage.map(u => `
+              <div>
+                <div class="flex justify-between text-xs font-semibold mb-1">
+                  <span class="text-white">${u.email || 'Unnamed'}</span>
+                  <span class="mono text-white/70">${u.usedTotalGB || 0} / ${u.quotaGB || 50} GB (${u.percent || 0}%)</span>
+                </div>
+                <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                  <div class="h-full bg-accent-gradient rounded-full" style="width: ${u.percent || 0}%"></div>
+                </div>
+              </div>
+            `).join('');
+          }
+        }
 
-      const inbList = document.getElementById('trafficInboundList');
-      if (inbList) {
-        inbList.innerHTML = data.inboundUsage.map(i => `
-          <div class="p-3 rounded-2xl bg-white/5 border border-white/10 flex justify-between text-xs">
-            <div>
-              <div class="font-bold text-white">${i.name}</div>
-              <div class="text-[10px] text-white/50 uppercase mono">${i.protocol}</div>
-            </div>
-            <span class="mono text-emerald-400 font-bold">${i.totalTraffic}</span>
-          </div>
-        `).join('');
+        const inbList = document.getElementById('trafficInboundList');
+        if (inbList) {
+          const inboundUsage = (data && Array.isArray(data.inboundUsage)) ? data.inboundUsage : [];
+          if (inboundUsage.length === 0) {
+            inbList.innerHTML = `<div class="text-xs text-white/40 py-2">No inbound traffic records</div>`;
+          } else {
+            inbList.innerHTML = inboundUsage.map(i => `
+              <div class="p-3 rounded-2xl bg-white/5 border border-white/10 flex justify-between text-xs">
+                <div>
+                  <div class="font-bold text-white">${i.name || 'Inbound'}</div>
+                  <div class="text-[10px] text-white/50 uppercase mono">${i.protocol || 'VLESS'}</div>
+                </div>
+                <span class="mono text-emerald-400 font-bold">${i.totalTraffic || '0 GB'}</span>
+              </div>
+            `).join('');
+          }
+        }
+      } catch (err) {
+        console.error('Error loading traffic data:', err);
       }
     }
 
     // 7. Telegram MTProto Proxy View (SE7O-SNA ADAPTATION)
     async function fetchTelegramProxy() {
-      const res = await fetch('/api/telegram-proxy/status');
-      const data = await res.json();
+      try {
+        const res = await fetch('/api/telegram-proxy/status');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data) return;
 
-      document.getElementById('tgStatusLabel').innerText = data.status.toUpperCase();
-      document.getElementById('tgStatusLabel').className = data.status === 'running' ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold';
-      document.getElementById('tgActiveConn').innerText = data.activeConnections;
-      document.getElementById('tgPortLabel').innerText = `:${data.port}`;
+        const tgStatusLabel = document.getElementById('tgStatusLabel');
+        if (tgStatusLabel) {
+          tgStatusLabel.innerText = (data.status || 'running').toUpperCase();
+          tgStatusLabel.className = data.status === 'running' ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold';
+        }
 
-      document.getElementById('tgDirectLink').href = data.links.tg;
-      document.getElementById('tgUrlInput').value = data.links.tg;
+        const tgActiveConn = document.getElementById('tgActiveConn');
+        if (tgActiveConn) tgActiveConn.innerText = data.activeConnections || 0;
 
-      document.getElementById('tgParamHost').innerText = data.server;
-      document.getElementById('tgParamPort').innerText = data.port;
-      document.getElementById('tgSecretDisplay').innerText = data.secret;
+        const tgPortLabel = document.getElementById('tgPortLabel');
+        if (tgPortLabel) tgPortLabel.innerText = `:${data.port || 8444}`;
 
-      // Config form defaults
-      document.getElementById('cfgTgPort').value = data.port;
-      document.getElementById('cfgTgSni').value = data.sni;
-      document.getElementById('cfgTgTag').value = data.tag || '';
+        if (data.links && data.links.tg) {
+          const tgDirectLink = document.getElementById('tgDirectLink');
+          if (tgDirectLink) tgDirectLink.href = data.links.tg;
+
+          const tgUrlInput = document.getElementById('tgUrlInput');
+          if (tgUrlInput) tgUrlInput.value = data.links.tg;
+        }
+
+        const tgParamHost = document.getElementById('tgParamHost');
+        if (tgParamHost) tgParamHost.innerText = data.server || window.location.hostname || 'railway.app';
+
+        const tgParamPort = document.getElementById('tgParamPort');
+        if (tgParamPort) tgParamPort.innerText = data.port || 8444;
+
+        const tgSecretDisplay = document.getElementById('tgSecretDisplay');
+        if (tgSecretDisplay) tgSecretDisplay.innerText = data.secret || '-';
+
+        // Config form defaults
+        const cfgTgPort = document.getElementById('cfgTgPort');
+        if (cfgTgPort) cfgTgPort.value = data.port || 8444;
+
+        const cfgTgSni = document.getElementById('cfgTgSni');
+        if (cfgTgSni) cfgTgSni.value = data.sni || 'www.speedtest.net';
+
+        const cfgTgTag = document.getElementById('cfgTgTag');
+        if (cfgTgTag) cfgTgTag.value = data.tag || '';
+      } catch (err) {
+        console.error('Error loading Telegram proxy:', err);
+      }
     }
 
     async function startTgProxy() {
@@ -2750,27 +2842,47 @@
 
     // 8. System View
     async function fetchSystem() {
-      const res = await fetch('/api/system');
-      const data = await res.json();
+      try {
+        const res = await fetch('/api/system');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data || !data.stats) return;
 
-      document.getElementById('sysCpuPct').innerText = `${data.stats.cpuUsage}%`;
-      document.getElementById('sysCpuBar').style.width = `${data.stats.cpuUsage}%`;
+        const sysCpuPct = document.getElementById('sysCpuPct');
+        if (sysCpuPct) sysCpuPct.innerText = `${data.stats.cpuUsage || 0}%`;
 
-      document.getElementById('sysRamPct').innerText = `${data.stats.memory.percent}%`;
-      document.getElementById('sysRamDetail').innerText = `${data.stats.memory.usedGB} / ${data.stats.memory.totalGB}`;
-      document.getElementById('sysRamBar').style.width = `${data.stats.memory.percent}%`;
+        const sysCpuBar = document.getElementById('sysCpuBar');
+        if (sysCpuBar) sysCpuBar.style.width = `${data.stats.cpuUsage || 0}%`;
 
-      document.getElementById('sysDbBadge').innerText = data.environment.databaseType;
+        const sysRamPct = document.getElementById('sysRamPct');
+        if (sysRamPct) sysRamPct.innerText = `${data.stats.memory?.percent || 0}%`;
 
-      const logBox = document.getElementById('systemLogBox');
-      if (logBox) {
-        logBox.innerHTML = data.logs.map(l => `
-          <div>
-            <span class="text-white/40">[${l.time}]</span>
-            <span class="text-accent-gradient font-bold">${l.type}:</span>
-            <span class="text-white/80">${l.text}</span>
-          </div>
-        `).join('');
+        const sysRamDetail = document.getElementById('sysRamDetail');
+        if (sysRamDetail) sysRamDetail.innerText = `${data.stats.memory?.usedGB || 0} / ${data.stats.memory?.totalGB || 0}`;
+
+        const sysRamBar = document.getElementById('sysRamBar');
+        if (sysRamBar) sysRamBar.style.width = `${data.stats.memory?.percent || 0}%`;
+
+        const sysDbBadge = document.getElementById('sysDbBadge');
+        if (sysDbBadge) sysDbBadge.innerText = data.environment?.databaseType || 'SQLite / JSON File';
+
+        const logBox = document.getElementById('systemLogBox');
+        if (logBox) {
+          const logs = (data && Array.isArray(data.logs)) ? data.logs : [];
+          if (logs.length === 0) {
+            logBox.innerHTML = `<div class="text-white/40 text-xs py-2">No system logs recorded yet</div>`;
+          } else {
+            logBox.innerHTML = logs.map(l => `
+              <div>
+                <span class="text-white/40">[${l.time || ''}]</span>
+                <span class="text-accent-gradient font-bold">${l.type || 'INFO'}:</span>
+                <span class="text-white/80">${l.text || ''}</span>
+              </div>
+            `).join('');
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching system telemetry:', err);
       }
     }
 
@@ -2977,7 +3089,7 @@
         const clientSelect = document.getElementById('wizClientId');
         if (clientSelect) {
           clientSelect.innerHTML = `<option value="all">⚡ Global (All Active Clients)</option>` + 
-            (clientData.clients || []).map(c => `<option value="${c.id}">👤 ${c.email} (${c.uuid.substring(0, 8)}...)</option>`).join('');
+            (clientData.clients || []).map(c => `<option value="${c.id}">👤 ${c.email || 'Client'} (${c.uuid ? c.uuid.substring(0, 8) + '...' : ''})</option>`).join('');
         }
 
         // Calculate next available non-conflicting port (>= 8443, avoid 3000, 8444)

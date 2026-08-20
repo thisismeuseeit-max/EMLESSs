@@ -225,13 +225,23 @@ class StorageManager {
       data.telegramProxy.port = config.mtproxyPort;
     }
 
-    if (Array.isArray(data.inbounds)) {
+    if (!Array.isArray(data.inbounds)) {
+      data.inbounds = defaultData.inbounds ? [...defaultData.inbounds] : [];
+    } else {
       data.inbounds = data.inbounds.map(inb => {
         if (!inb.transportMode) {
           inb.transportMode = 'standard';
         }
         return inb;
       });
+    }
+
+    if (!Array.isArray(data.clients)) {
+      data.clients = defaultData.clients ? [...defaultData.clients] : [];
+    }
+
+    if (!Array.isArray(data.logs)) {
+      data.logs = defaultData.logs ? [...defaultData.logs] : [];
     }
     return data;
   }

@@ -421,7 +421,7 @@ router.get('/subscriptions', requireAuth, (req, res) => {
   const host = req.get('host');
   const protocol = req.protocol;
 
-  const list = state.clients.map(client => {
+  const list = (state.clients || []).map(client => {
     const subUrl = `${protocol}://${host}/sub/${client.subToken}`;
     const base64Url = `${protocol}://${host}/sub/${client.subToken}/base64`;
     const plainUrl = `${protocol}://${host}/sub/${client.subToken}/plain`;
@@ -552,7 +552,7 @@ router.get('/traffic', requireAuth, (req, res) => {
   const stats = telemetry.getSystemStats();
   const state = storage.getState();
 
-  const userUsage = state.clients.map(c => ({
+  const userUsage = (state.clients || []).map(c => ({
     email: c.email,
     quotaGB: c.quotaGB,
     usedTotalGB: +((c.usedUploadGB || 0) + (c.usedDownloadGB || 0)).toFixed(2),
@@ -563,7 +563,7 @@ router.get('/traffic', requireAuth, (req, res) => {
     totalTraffic: stats.totalTraffic,
     liveBandwidth: stats.liveBandwidth,
     userUsage,
-    inboundUsage: state.inbounds.map(i => ({
+    inboundUsage: (state.inbounds || []).map(i => ({
       name: i.name,
       protocol: i.protocol,
       transportMode: i.transportMode || 'standard',
