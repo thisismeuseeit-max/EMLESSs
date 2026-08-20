@@ -38,18 +38,18 @@ Click the button above or configure the following environment variables:
 
 | Variable | Class | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `PORT` | Railway-Provided | `3000` | Port automatically assigned by Railway |
-| `RAILWAY_PUBLIC_DOMAIN` | Railway-Provided | *Auto-detected* | Public domain for subscriptions & MTProto |
+| `PORT` | Railway-Provided | `8080` | Port automatically assigned by Railway |
+| `DOMAIN` | Railway Reference | `${{RAILWAY_PUBLIC_DOMAIN}}` | Public domain for subscriptions & dashboard |
 | `ADMIN_USERNAME` | User-Provided | `admin` | Administrator login username |
-| `ADMIN_PASSWORD` | User-Provided | `123456` | Initial administrator login password |
-| `SECRET_KEY` | Auto-Generated | *Auto-generated* | 32-byte cryptographic session secret |
-| `DATABASE_URL` | Optional | *Persistent Storage* | Optional PostgreSQL database URL |
+| `ADMIN_PASSWORD` | User-Provided | `StrongPass!123` | Administrator login password |
+| `SECRET_KEY` | User-Provided | `8trpmjrrev6hcwqvqv6qhjve0fda6m2r` | Cryptographic session secret |
+| `DB_PATH` | Persistence | `/data/panel.db` | Path to persistent database on Railway Volume |
 | `MTPROXY_ENABLED` | Optional | `true` | Enable built-in Telegram MTProto proxy |
-| `MTPROXY_PORT` | Optional | `8444` | Telegram MTProto proxy listening port |
-| `DEFAULT_TRANSPORT_MODE` | Optional Override | `standard` | Default connection mode (`standard` or `cloak_ws`) |
-| `CLOAK_WS_ENABLED` | Optional Override | `true` | Enable Cloak WS obfuscation provider |
-| `CLOAK_WS_DEFAULT_PATH` | Optional Override | `/cloak-stream` | Default Cloak WS stream path fallback |
-| `CLOAK_WS_MASK_SNI` | Optional Override | `www.cloudflare.com` | Default Cloak WS masking SNI fallback |
+| `MTPROXY_PORT` | Optional | `${{RAILWAY_TCP_APPLICATION_PORT}}` | Telegram MTProto proxy listening port |
+| `MTPROXY_PUBLIC_HOST` | Optional | `${{RAILWAY_TCP_PROXY_DOMAIN}}` | Railway TCP Proxy domain for Telegram |
+| `MTPROXY_PUBLIC_PORT` | Optional | `${{RAILWAY_TCP_PROXY_PORT}}` | Railway TCP Proxy port for Telegram |
+| `WORKERS` | Optional | `4` | Number of worker processes |
+| `DEFAULT_TRANSPORT_MODE` | Optional | `standard` | Default connection mode (`standard` or `cloak_ws`) |
 
 ---
 
