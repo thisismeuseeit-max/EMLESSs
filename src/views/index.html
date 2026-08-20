@@ -116,6 +116,22 @@
     box-shadow: inset 0 0 16px rgba(253, 134, 219, 0.08);
   }
 
+  /* Collapsible Desktop Sidebar */
+  #desktopSidebar.sidebar-collapsed {
+    width: 5rem !important;
+  }
+  #desktopSidebar.sidebar-collapsed .sidebar-label {
+    display: none !important;
+  }
+  #desktopSidebar.sidebar-collapsed .sidebar-btn {
+    justify-content: center;
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+  #desktopSidebar.sidebar-collapsed #sidebarCollapseIcon {
+    transform: rotate(180deg);
+  }
+
   /* Custom Scrollbar */
   ::-webkit-scrollbar {
     width: 6px;
@@ -274,138 +290,198 @@
     </header>
 
     <!-- MOBILE NAVIGATION DRAWER & BACKDROP -->
-    <div id="mobileNavBackdrop" onclick="toggleMobileNav(false)" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm lg:hidden transition-opacity"></div>
-    <aside id="mobileNavDrawer" class="fixed top-0 left-0 bottom-0 w-72 max-w-[85vw] z-50 emless-glass-elevated border-r border-white/15 p-5 flex flex-col justify-between transform -translate-x-full transition-transform duration-300 ease-in-out lg:hidden">
+    <div id="mobileNavBackdrop" onclick="toggleMobileNav(false)" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-md lg:hidden transition-opacity duration-300"></div>
+    <aside id="mobileNavDrawer" class="fixed top-0 left-0 bottom-0 w-80 max-w-[85vw] z-50 emless-glass-elevated border-r border-white/15 p-5 flex flex-col justify-between transform -translate-x-full transition-transform duration-300 ease-in-out lg:hidden">
       <div class="space-y-4">
+        <!-- Drawer Header -->
         <div class="flex items-center justify-between pb-3 border-b border-white/10">
-          <div class="flex items-center gap-2.5">
-            <div class="w-8 h-8 rounded-lg bg-white/5 border border-white/15 flex items-center justify-center text-accent-gradient font-bold text-sm">EM</div>
-            <span class="font-extrabold text-white text-base">EMLESS</span>
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-white/5 border border-white/15 flex items-center justify-center text-accent-gradient font-black text-sm shadow-md">EM</div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="font-extrabold text-white text-base tracking-tight">EMLESS</span>
+                <span class="px-1.5 py-0.5 text-[9px] font-bold rounded-full bg-white/10 text-accent-gradient mono">v2.2</span>
+              </div>
+              <span class="text-[10px] text-white/50 block">Unified Gateway Hub</span>
+            </div>
           </div>
-          <button onclick="toggleMobileNav(false)" class="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 text-sm">✕</button>
+          <button onclick="toggleMobileNav(false)" class="p-2 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors" aria-label="Close menu">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
         </div>
 
-        <nav class="flex flex-col gap-1 overflow-y-auto max-h-[calc(100vh-180px)] pr-1" id="mobileNavList">
+        <!-- Quick Action Shortcuts in Drawer -->
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button onclick="openAddClientModal(); toggleMobileNav(false)" class="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-left text-xs font-semibold text-white flex items-center gap-2 transition-all">
+            <span class="w-6 h-6 rounded-lg bg-pink-500/20 text-pink-300 flex items-center justify-center text-xs">+</span>
+            <span>New Client</span>
+          </button>
+          <button onclick="openConfigWizard(null, 'standard'); toggleMobileNav(false)" class="p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-left text-xs font-semibold text-white flex items-center gap-2 transition-all">
+            <span class="w-6 h-6 rounded-lg bg-indigo-500/20 text-indigo-300 flex items-center justify-center text-xs">⚡</span>
+            <span>New Inbound</span>
+          </button>
+        </div>
+
+        <!-- Drawer Navigation Items -->
+        <nav class="flex flex-col gap-1 overflow-y-auto max-h-[calc(100vh-250px)] pr-1" id="mobileNavList">
+          <div class="text-[10px] font-bold text-white/40 uppercase tracking-widest px-3 pt-2 pb-1">Core & Metrics</div>
           <button onclick="switchTab('dashboard'); toggleMobileNav(false)" id="mobtab-dashboard" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
             <svg class="w-4 h-4 text-pink-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-            <span>Dashboard</span>
+            <span class="flex-1">Dashboard</span>
           </button>
           <button onclick="switchTab('connections'); toggleMobileNav(false)" id="mobtab-connections" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
             <svg class="w-4 h-4 text-cyan-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            <span>Connections</span>
-          </button>
-          <button onclick="switchTab('configurations'); toggleMobileNav(false)" id="mobtab-configurations" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
-            <svg class="w-4 h-4 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-            <span>Configurations</span>
-          </button>
-          <button onclick="switchTab('clients'); toggleMobileNav(false)" id="mobtab-clients" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
-            <svg class="w-4 h-4 text-violet-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-            <span>Clients</span>
-          </button>
-          <button onclick="switchTab('subscriptions'); toggleMobileNav(false)" id="mobtab-subscriptions" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
-            <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-            <span>Subscriptions</span>
+            <span class="flex-1">Connections</span>
+            <span id="mobConnBadge" class="px-2 py-0.5 text-[10px] rounded-full bg-cyan-500/15 text-cyan-300 mono font-bold">0</span>
           </button>
           <button onclick="switchTab('traffic'); toggleMobileNav(false)" id="mobtab-traffic" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
             <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-            <span>Traffic</span>
+            <span class="flex-1">Traffic & Quotas</span>
+          </button>
+
+          <div class="text-[10px] font-bold text-white/40 uppercase tracking-widest px-3 pt-3 pb-1">Protocols & Routing</div>
+          <button onclick="switchTab('configurations'); toggleMobileNav(false)" id="mobtab-configurations" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+            <span class="flex-1">Inbound Configurations</span>
+            <span id="mobInbBadge" class="px-2 py-0.5 text-[10px] rounded-full bg-indigo-500/15 text-indigo-300 mono font-bold">5</span>
           </button>
           <button onclick="switchTab('telegram-proxy'); toggleMobileNav(false)" id="mobtab-telegram-proxy" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
             <svg class="w-4 h-4 text-sky-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
-            <span class="flex-1">Telegram Proxy</span>
-            <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+            <span class="flex-1">Telegram MTProto</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0 shadow-lg shadow-emerald-400/50"></span>
           </button>
           <button onclick="switchTab('transport'); toggleMobileNav(false)" id="mobtab-transport" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
             <svg class="w-4 h-4 text-cyan-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-            <span>Transport</span>
+            <span class="flex-1">Transport Layer</span>
+          </button>
+
+          <div class="text-[10px] font-bold text-white/40 uppercase tracking-widest px-3 pt-3 pb-1">Access & Management</div>
+          <button onclick="switchTab('clients'); toggleMobileNav(false)" id="mobtab-clients" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-violet-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            <span class="flex-1">Clients & Users</span>
+          </button>
+          <button onclick="switchTab('subscriptions'); toggleMobileNav(false)" id="mobtab-subscriptions" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+            <span class="flex-1">Subscriptions</span>
           </button>
           <button onclick="switchTab('system'); toggleMobileNav(false)" id="mobtab-system" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
             <svg class="w-4 h-4 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
-            <span>System</span>
+            <span class="flex-1">System Health</span>
           </button>
           <button onclick="switchTab('settings'); toggleMobileNav(false)" id="mobtab-settings" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
             <svg class="w-4 h-4 text-purple-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            <span>Settings</span>
+            <span class="flex-1">Settings</span>
           </button>
         </nav>
       </div>
 
-      <div class="p-3 rounded-2xl bg-white/5 border border-white/10 text-[11px] space-y-1 text-white/60">
-        <div>Kernel: <b class="text-white">RVG + MTProto</b></div>
-        <div>Transports: <b class="text-accent-gradient">Standard + Cloak WS</b></div>
+      <!-- Drawer Footer -->
+      <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-[11px] space-y-1.5 text-white/60">
+        <div class="flex items-center justify-between">
+          <span>Kernel:</span>
+          <span class="text-white font-bold">RVG + MTProto</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span>Transports:</span>
+          <span class="text-accent-gradient font-bold">Standard + Cloak WS</span>
+        </div>
       </div>
     </aside>
 
-    <!-- BODY LAYOUT WITH SIDEBAR -->
-    <div class="flex-1 flex flex-col lg:flex-row">
+    <!-- BODY LAYOUT WITH ULTRA-RESPONSIVE SIDEBAR -->
+    <div class="flex-1 flex flex-col lg:flex-row pb-16 lg:pb-0">
       
-      <!-- DESKTOP / TABLET SIDEBAR -->
-      <aside class="hidden lg:flex w-64 border-r border-white/10 bg-[#161616]/40 p-4 shrink-0 flex-col justify-between">
-        <nav class="flex flex-col gap-1.5" id="sidebarNav">
-          <!-- 1. Dashboard -->
-          <button onclick="switchTab('dashboard')" id="tab-dashboard" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer nav-active">
-            <svg class="w-4 h-4 text-pink-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-            <span>Dashboard</span>
-          </button>
+      <!-- DESKTOP / TABLET COLLAPSIBLE SIDEBAR -->
+      <aside id="desktopSidebar" class="hidden lg:flex w-64 border-r border-white/10 bg-[#161616]/60 backdrop-blur-xl p-4 shrink-0 flex-col justify-between transition-all duration-300 ease-in-out relative z-30">
+        <div class="space-y-4">
+          <!-- Sidebar Top Toggle / Branding header -->
+          <div class="flex items-center justify-between pb-2 border-b border-white/10">
+            <div class="sidebar-label flex items-center gap-2 text-xs font-bold text-white/50 uppercase tracking-wider">
+              <span>Navigation</span>
+            </div>
+            <button onclick="toggleDesktopSidebar()" id="sidebarCollapseBtn" class="p-1.5 rounded-lg emless-glass hover:bg-white/10 text-white/60 hover:text-white transition-colors cursor-pointer" title="Collapse / Expand Sidebar (Alt+S)">
+              <svg id="sidebarCollapseIcon" class="w-4 h-4 transform transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+            </button>
+          </div>
 
-          <!-- 2. Connections -->
-          <button onclick="switchTab('connections')" id="tab-connections" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
-            <svg class="w-4 h-4 text-cyan-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-            <span>Connections</span>
-          </button>
+          <nav class="flex flex-col gap-1" id="sidebarNav">
+            <!-- 1. Dashboard -->
+            <button onclick="switchTab('dashboard')" id="tab-dashboard" class="sidebar-btn group relative w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer nav-active" title="Dashboard">
+              <svg class="w-4 h-4 text-pink-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+              <span class="sidebar-label flex-1 truncate">Dashboard</span>
+              <span class="sidebar-tooltip hidden group-hover:block absolute left-full ml-2.5 px-2.5 py-1 bg-black/90 text-white text-xs font-semibold rounded-lg border border-white/15 shadow-xl whitespace-nowrap z-50 pointer-events-none">Dashboard</span>
+            </button>
 
-          <!-- 3. Configurations -->
-          <button onclick="switchTab('configurations')" id="tab-configurations" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
-            <svg class="w-4 h-4 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
-            <span>Configurations</span>
-          </button>
+            <!-- 2. Connections -->
+            <button onclick="switchTab('connections')" id="tab-connections" class="sidebar-btn group relative w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer" title="Connections">
+              <svg class="w-4 h-4 text-cyan-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              <span class="sidebar-label flex-1 truncate">Connections</span>
+              <span id="sideConnCount" class="sidebar-label px-2 py-0.5 text-[10px] rounded-full bg-cyan-500/15 text-cyan-300 mono font-bold">0</span>
+              <span class="sidebar-tooltip hidden group-hover:block absolute left-full ml-2.5 px-2.5 py-1 bg-black/90 text-white text-xs font-semibold rounded-lg border border-white/15 shadow-xl whitespace-nowrap z-50 pointer-events-none">Active Connections</span>
+            </button>
 
-          <!-- 4. Clients -->
-          <button onclick="switchTab('clients')" id="tab-clients" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
-            <svg class="w-4 h-4 text-violet-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-            <span>Clients</span>
-          </button>
+            <!-- 3. Configurations -->
+            <button onclick="switchTab('configurations')" id="tab-configurations" class="sidebar-btn group relative w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer" title="Configurations">
+              <svg class="w-4 h-4 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+              <span class="sidebar-label flex-1 truncate">Configurations</span>
+              <span id="sideInboundBadge" class="sidebar-label px-2 py-0.5 text-[10px] rounded-full bg-indigo-500/15 text-indigo-300 mono font-bold">5</span>
+              <span class="sidebar-tooltip hidden group-hover:block absolute left-full ml-2.5 px-2.5 py-1 bg-black/90 text-white text-xs font-semibold rounded-lg border border-white/15 shadow-xl whitespace-nowrap z-50 pointer-events-none">Inbound Configurations</span>
+            </button>
 
-          <!-- 5. Subscriptions -->
-          <button onclick="switchTab('subscriptions')" id="tab-subscriptions" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
-            <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
-            <span>Subscriptions</span>
-          </button>
+            <!-- 4. Clients -->
+            <button onclick="switchTab('clients')" id="tab-clients" class="sidebar-btn group relative w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer" title="Clients">
+              <svg class="w-4 h-4 text-violet-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+              <span class="sidebar-label flex-1 truncate">Clients</span>
+              <span class="sidebar-tooltip hidden group-hover:block absolute left-full ml-2.5 px-2.5 py-1 bg-black/90 text-white text-xs font-semibold rounded-lg border border-white/15 shadow-xl whitespace-nowrap z-50 pointer-events-none">Clients & Users</span>
+            </button>
 
-          <!-- 6. Traffic -->
-          <button onclick="switchTab('traffic')" id="tab-traffic" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
-            <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-            <span>Traffic</span>
-          </button>
+            <!-- 5. Subscriptions -->
+            <button onclick="switchTab('subscriptions')" id="tab-subscriptions" class="sidebar-btn group relative w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer" title="Subscriptions">
+              <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+              <span class="sidebar-label flex-1 truncate">Subscriptions</span>
+              <span class="sidebar-tooltip hidden group-hover:block absolute left-full ml-2.5 px-2.5 py-1 bg-black/90 text-white text-xs font-semibold rounded-lg border border-white/15 shadow-xl whitespace-nowrap z-50 pointer-events-none">Client Subscriptions</span>
+            </button>
 
-          <!-- 7. Telegram Proxy -->
-          <button onclick="switchTab('telegram-proxy')" id="tab-telegram-proxy" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
-            <svg class="w-4 h-4 text-sky-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
-            <span class="flex-1">Telegram Proxy</span>
-            <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
-          </button>
+            <!-- 6. Traffic -->
+            <button onclick="switchTab('traffic')" id="tab-traffic" class="sidebar-btn group relative w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer" title="Traffic">
+              <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+              <span class="sidebar-label flex-1 truncate">Traffic</span>
+              <span class="sidebar-tooltip hidden group-hover:block absolute left-full ml-2.5 px-2.5 py-1 bg-black/90 text-white text-xs font-semibold rounded-lg border border-white/15 shadow-xl whitespace-nowrap z-50 pointer-events-none">Bandwidth & Quotas</span>
+            </button>
 
-          <!-- 8. Transport -->
-          <button onclick="switchTab('transport')" id="tab-transport" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
-            <svg class="w-4 h-4 text-cyan-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-            <span>Transport</span>
-          </button>
+            <!-- 7. Telegram Proxy -->
+            <button onclick="switchTab('telegram-proxy')" id="tab-telegram-proxy" class="sidebar-btn group relative w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer" title="Telegram Proxy">
+              <svg class="w-4 h-4 text-sky-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+              <span class="sidebar-label flex-1 truncate">Telegram Proxy</span>
+              <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+              <span class="sidebar-tooltip hidden group-hover:block absolute left-full ml-2.5 px-2.5 py-1 bg-black/90 text-white text-xs font-semibold rounded-lg border border-white/15 shadow-xl whitespace-nowrap z-50 pointer-events-none">Telegram MTProto Proxy</span>
+            </button>
 
-          <!-- 9. System -->
-          <button onclick="switchTab('system')" id="tab-system" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
-            <svg class="w-4 h-4 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
-            <span>System</span>
-          </button>
+            <!-- 8. Transport -->
+            <button onclick="switchTab('transport')" id="tab-transport" class="sidebar-btn group relative w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer" title="Transport Layer">
+              <svg class="w-4 h-4 text-cyan-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+              <span class="sidebar-label flex-1 truncate">Transport</span>
+              <span class="sidebar-tooltip hidden group-hover:block absolute left-full ml-2.5 px-2.5 py-1 bg-black/90 text-white text-xs font-semibold rounded-lg border border-white/15 shadow-xl whitespace-nowrap z-50 pointer-events-none">Transport Layer & Cloak WS</span>
+            </button>
 
-          <!-- 10. Settings -->
-          <button onclick="switchTab('settings')" id="tab-settings" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
-            <svg class="w-4 h-4 text-purple-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-            <span>Settings</span>
-          </button>
-        </nav>
+            <!-- 9. System -->
+            <button onclick="switchTab('system')" id="tab-system" class="sidebar-btn group relative w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer" title="System Health">
+              <svg class="w-4 h-4 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+              <span class="sidebar-label flex-1 truncate">System</span>
+              <span class="sidebar-tooltip hidden group-hover:block absolute left-full ml-2.5 px-2.5 py-1 bg-black/90 text-white text-xs font-semibold rounded-lg border border-white/15 shadow-xl whitespace-nowrap z-50 pointer-events-none">System & Logs</span>
+            </button>
+
+            <!-- 10. Settings -->
+            <button onclick="switchTab('settings')" id="tab-settings" class="sidebar-btn group relative w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer" title="Settings">
+              <svg class="w-4 h-4 text-purple-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+              <span class="sidebar-label flex-1 truncate">Settings</span>
+              <span class="sidebar-tooltip hidden group-hover:block absolute left-full ml-2.5 px-2.5 py-1 bg-black/90 text-white text-xs font-semibold rounded-lg border border-white/15 shadow-xl whitespace-nowrap z-50 pointer-events-none">Server & Kernel Settings</span>
+            </button>
+          </nav>
+        </div>
 
         <!-- Sidebar Footer Specs -->
-        <div class="mt-6 p-4 rounded-2xl emless-glass text-xs space-y-2">
+        <div class="sidebar-label mt-6 p-4 rounded-2xl emless-glass text-xs space-y-2">
           <div class="text-[10px] font-bold text-white/40 uppercase tracking-widest">DEPLOYMENT TARGET</div>
           <div class="flex items-center justify-between text-white/80">
             <span class="text-white/50">Host:</span>
@@ -421,6 +497,37 @@
           </div>
         </div>
       </aside>
+
+      <!-- MOBILE BOTTOM NAVIGATION BAR -->
+      <nav id="mobileBottomBar" class="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#161616]/90 backdrop-blur-xl border-t border-white/10 px-2 py-1.5 flex items-center justify-around">
+        <button onclick="switchTab('dashboard')" id="bottab-dashboard" class="flex flex-col items-center justify-center p-2 rounded-xl text-white/60 hover:text-white transition-colors cursor-pointer nav-active">
+          <svg class="w-5 h-5 text-pink-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+          <span class="text-[10px] font-semibold mt-0.5">Home</span>
+        </button>
+
+        <button onclick="switchTab('configurations')" id="bottab-configurations" class="flex flex-col items-center justify-center p-2 rounded-xl text-white/60 hover:text-white transition-colors cursor-pointer">
+          <svg class="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+          <span class="text-[10px] font-semibold mt-0.5">Inbounds</span>
+        </button>
+
+        <button onclick="switchTab('clients')" id="bottab-clients" class="flex flex-col items-center justify-center p-2 rounded-xl text-white/60 hover:text-white transition-colors cursor-pointer">
+          <svg class="w-5 h-5 text-violet-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+          <span class="text-[10px] font-semibold mt-0.5">Clients</span>
+        </button>
+
+        <button onclick="switchTab('telegram-proxy')" id="bottab-telegram-proxy" class="flex flex-col items-center justify-center p-2 rounded-xl text-white/60 hover:text-white transition-colors cursor-pointer">
+          <div class="relative">
+            <svg class="w-5 h-5 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 absolute -top-0.5 -right-0.5"></span>
+          </div>
+          <span class="text-[10px] font-semibold mt-0.5">Telegram</span>
+        </button>
+
+        <button onclick="toggleMobileNav(true)" class="flex flex-col items-center justify-center p-2 rounded-xl text-white/60 hover:text-white transition-colors cursor-pointer">
+          <svg class="w-5 h-5 text-accent-gradient" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          <span class="text-[10px] font-semibold mt-0.5">Menu</span>
+        </button>
+      </nav>
 
       <!-- MAIN CONTENT -->
       <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full">
@@ -1754,16 +1861,55 @@
     // Tab Navigation
     function switchTab(tabId) {
       currentTab = tabId;
-      const tabs = ['dashboard', 'connections', 'configurations', 'clients', 'subscriptions', 'traffic', 'telegram-proxy', 'system', 'settings'];
+      const tabs = ['dashboard', 'connections', 'configurations', 'clients', 'subscriptions', 'traffic', 'telegram-proxy', 'transport', 'system', 'settings'];
 
       tabs.forEach(t => {
         const viewEl = document.getElementById(`view-${t}`);
         const btnEl = document.getElementById(`tab-${t}`);
+        const mobBtnEl = document.getElementById(`mobtab-${t}`);
+        const botBtnEl = document.getElementById(`bottab-${t}`);
+
         if (viewEl) viewEl.classList.toggle('hidden', t !== tabId);
         if (btnEl) btnEl.classList.toggle('nav-active', t === tabId);
+        if (mobBtnEl) mobBtnEl.classList.toggle('nav-active', t === tabId);
+        if (botBtnEl) {
+          botBtnEl.classList.toggle('nav-active', t === tabId);
+          botBtnEl.classList.toggle('text-white', t === tabId);
+          botBtnEl.classList.toggle('text-white/60', t !== tabId);
+        }
       });
 
       refreshCurrentView();
+    }
+
+    // Collapsible Desktop Sidebar Controller
+    function toggleDesktopSidebar(forceState) {
+      const sidebar = document.getElementById('desktopSidebar');
+      if (!sidebar) return;
+      const isCurrentlyCollapsed = sidebar.classList.contains('sidebar-collapsed');
+      const shouldCollapse = forceState !== undefined ? forceState : !isCurrentlyCollapsed;
+
+      if (shouldCollapse) {
+        sidebar.classList.add('sidebar-collapsed');
+        localStorage.setItem('emless_sidebar_collapsed', 'true');
+      } else {
+        sidebar.classList.remove('sidebar-collapsed');
+        localStorage.setItem('emless_sidebar_collapsed', 'false');
+      }
+    }
+
+    // Keyboard shortcut Alt+S for sidebar toggle
+    document.addEventListener('keydown', (e) => {
+      if (e.altKey && (e.key === 's' || e.key === 'S')) {
+        e.preventDefault();
+        toggleDesktopSidebar();
+      }
+    });
+
+    // Initialize sidebar state from user preference
+    if (localStorage.getItem('emless_sidebar_collapsed') === 'true') {
+      const sidebar = document.getElementById('desktopSidebar');
+      if (sidebar) sidebar.classList.add('sidebar-collapsed');
     }
 
     // Auth & Session Check
@@ -1893,6 +2039,17 @@
 
         const sideUpEl = document.getElementById('sideUptime');
         if (sideUpEl) sideUpEl.innerText = stats.uptimeFormatted || '0s';
+
+        // Update sidebar and drawer badges
+        const sideConnCount = document.getElementById('sideConnCount');
+        if (sideConnCount) sideConnCount.innerText = stats.counts?.activeConnections ?? 0;
+        const mobConnBadge = document.getElementById('mobConnBadge');
+        if (mobConnBadge) mobConnBadge.innerText = stats.counts?.activeConnections ?? 0;
+
+        const sideInboundBadge = document.getElementById('sideInboundBadge');
+        if (sideInboundBadge) sideInboundBadge.innerText = stats.counts?.activeConfigurations ?? (data.inbounds?.length || 0);
+        const mobInbBadge = document.getElementById('mobInbBadge');
+        if (mobInbBadge) mobInbBadge.innerText = stats.counts?.activeConfigurations ?? (data.inbounds?.length || 0);
 
         // MTProto Header badge
         if (stats.telegramProxy) {
@@ -3035,14 +3192,16 @@
       const backdrop = document.getElementById('mobileNavBackdrop');
       if (!drawer || !backdrop) return;
       if (open === true) {
-        drawer.classList.remove('translate-x-full');
+        drawer.classList.remove('-translate-x-full');
+        drawer.classList.add('translate-x-0');
         backdrop.classList.remove('hidden');
       } else if (open === false) {
-        drawer.classList.add('translate-x-full');
+        drawer.classList.add('-translate-x-full');
+        drawer.classList.remove('translate-x-0');
         backdrop.classList.add('hidden');
       } else {
-        drawer.classList.toggle('translate-x-full');
-        backdrop.classList.toggle('hidden');
+        const isClosed = drawer.classList.contains('-translate-x-full');
+        toggleMobileNav(isClosed);
       }
     }
 
