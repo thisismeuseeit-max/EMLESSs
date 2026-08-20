@@ -21,6 +21,19 @@ export class CloakWSTransport extends BaseTransport {
     const effectiveDomain = domain || systemSettings.domain || systemSettings.serverIp || '127.0.0.1';
     const tagSuffix = inbound.name ? `${inbound.name} · ${client.email}` : `EMLESS-CloakWS · ${client.email}`;
 
+
+    let publicDomain = effectiveDomain;
+    let publicPort = inbound.port;
+    
+    // Cloak WS is WebSocket based, so it routes through standard Web Router (443)
+    publicPort = 443;
+    
+    // Strip http/https prefix from publicDomain if it exists
+    if (publicDomain && publicDomain.startsWith('http')) {
+        publicDomain = publicDomain.replace(/^https?:\/\//, '');
+    }
+
+
     // Cloak WS specific parameters with safe auto-generated fallbacks
     const cloakPath = inbound.path || `/cloak-ws-${inbound.id || 'stream'}`;
     const maskSni = inbound.cloakMaskSni || inbound.sni || systemSettings.sni || effectiveDomain;
@@ -31,7 +44,7 @@ export class CloakWSTransport extends BaseTransport {
     if (inbound.protocol === 'vless') {
       const encodedPath = encodeURIComponent(cloakPath);
       // VLESS + Cloak WS Obfuscated URI
-      const uri = `vless://${client.uuid}@${effectiveDomain}:${inbound.port}?type=ws&security=tls&path=${encodedPath}&host=${encodeURIComponent(maskSni)}&sni=${encodeURIComponent(maskSni)}&fp=${fp}&alpn=${encodeURIComponent(alpn)}&ed=${earlyData}#${encodeURIComponent(tagSuffix)}`;
+      const uri = `vless://${client.uuid}@${publicDomain}:${publicPort}?type=ws&security=tls&path=${encodedPath}&host=${encodeURIComponent(maskSni)}&sni=${encodeURIComponent(maskSni)}&fp=${fp}&alpn=${encodeURIComponent(alpn)}&ed=${earlyData}#${encodeURIComponent(tagSuffix)}`;
 
       return {
         id: inbound.id,
@@ -55,7 +68,7 @@ export class CloakWSTransport extends BaseTransport {
     } else if (inbound.protocol === 'trojan') {
       const encodedPath = encodeURIComponent(cloakPath);
       // Trojan + Cloak WS Obfuscated URI
-      const uri = `trojan://${client.password}@${effectiveDomain}:${inbound.port}?type=ws&security=tls&path=${encodedPath}&host=${encodeURIComponent(maskSni)}&sni=${encodeURIComponent(maskSni)}&fp=${fp}&alpn=${encodeURIComponent(alpn)}&ed=${earlyData}#${encodeURIComponent(tagSuffix)}`;
+      const uri = `trojan://${client.password}@${publicDomain}:${publicPort}?type=ws&security=tls&path=${encodedPath}&host=${encodeURIComponent(maskSni)}&sni=${encodeURIComponent(maskSni)}&fp=${fp}&alpn=${encodeURIComponent(alpn)}&ed=${earlyData}#${encodeURIComponent(tagSuffix)}`;
 
       return {
         id: inbound.id,
@@ -82,7 +95,7 @@ export class CloakWSTransport extends BaseTransport {
       const password = inbound.password || 'emlessSecretKeySS2022Blake3Secure==';
       const creds = Buffer.from(`${method}:${password}`).toString('base64');
       const pluginOpts = encodeURIComponent(`obfs=websocket;path=${cloakPath};host=${maskSni};tls`);
-      const uri = `ss://${creds}@${effectiveDomain}:${inbound.port}?plugin=v2ray-plugin%3B${pluginOpts}#${encodeURIComponent(tagSuffix)}`;
+      const uri = `ss://${creds}@${publicDomain}:${publicPort}?plugin=v2ray-plugin%3B${pluginOpts}#${encodeURIComponent(tagSuffix)}`;
 
       return {
         id: inbound.id,

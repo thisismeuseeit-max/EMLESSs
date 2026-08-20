@@ -102,7 +102,10 @@ export class TelegramProxyService {
     const proxy = state.telegramProxy;
     const domain = state.systemSettings.domain || config.mtproxyPublicHost || reqHost || config.railwayPublicDomain || state.systemSettings.serverIp;
     const server = (config.mtproxyPublicHost || domain).split(':')[0];
-    const port = config.mtproxyPublicPort ? parseInt(config.mtproxyPublicPort, 10) : proxy.port;
+        let port = proxy.port;
+    if (config.mtproxyPublicPort) {
+        port = isNaN(parseInt(config.mtproxyPublicPort, 10)) ? config.mtproxyPublicPort : parseInt(config.mtproxyPublicPort, 10);
+    }
 
     const tgLink = `tg://proxy?server=${encodeURIComponent(server)}&port=${port}&secret=${encodeURIComponent(proxy.secret)}`;
     const webLink = `https://t.me/proxy?server=${encodeURIComponent(server)}&port=${port}&secret=${encodeURIComponent(proxy.secret)}`;

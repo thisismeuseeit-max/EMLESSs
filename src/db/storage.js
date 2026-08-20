@@ -10,7 +10,7 @@ const defaultData = {
   adminPassword: config.adminPassword,
   secretKey: config.secretKey,
   systemSettings: {
-    serverIp: "185.190.140.22",
+    serverIp: "",
     domain: config.railwayPublicDomain || "gateway.emless.network",
     port: 443,
     tlsType: "reality",
@@ -217,6 +217,12 @@ class StorageManager {
     }
     if (!data.secretKey || data.secretKey.length < 8) {
       data.secretKey = config.secretKey;
+    }
+        if (!data.telegramProxy.server || data.telegramProxy.server === '185.190.140.22') {
+      data.telegramProxy.server = config.mtproxyPublicHost || config.domain || '';
+    }
+    if (!data.systemSettings.serverIp || data.systemSettings.serverIp === '185.190.140.22') {
+      data.systemSettings.serverIp = config.domain || '';
     }
     if (!data.telegramProxy) {
       data.telegramProxy = { ...defaultData.telegramProxy };
