@@ -726,8 +726,12 @@
               <p class="text-xs text-white/60">Manage VLESS REALITY, Trojan XHTTP, WS TLS, and Shadowsocks endpoints</p>
             </div>
             <div class="flex items-center gap-3">
-              <button onclick="deployAllConfigurations()" id="btnDeployAllInbounds" class="px-4 py-2.5 emless-glass hover:bg-white/10 border border-white/20 rounded-xl text-xs font-bold text-white flex items-center gap-2 cursor-pointer transition-all shadow">
-                <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+              <button onclick="pingAllInbounds()" id="btnPingAllInbounds" class="px-3.5 py-2.5 emless-glass hover:bg-white/10 border border-cyan-500/30 rounded-xl text-xs font-bold text-cyan-300 flex items-center gap-2 cursor-pointer transition-all shadow">
+                <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span>Ping All</span>
+              </button>
+              <button onclick="deployAllConfigurations()" id="btnDeployAllInbounds" class="px-3.5 py-2.5 emless-glass hover:bg-white/10 border border-white/20 rounded-xl text-xs font-bold text-white flex items-center gap-2 cursor-pointer transition-all shadow">
+                <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                 <span>Deploy All</span>
               </button>
               <button onclick="openAddInboundModal()" class="px-4 py-2.5 btn-accent rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-lg">
@@ -2204,6 +2208,8 @@
     }
 
     // 3. Configurations View
+    const inboundLatencyCache = {};
+
     async function fetchConfigurations() {
       try {
         const res = await fetch('/api/configurations');
@@ -2236,20 +2242,33 @@
             statusBadge = `<span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-white/10 text-white/50 border border-white/10 mono uppercase">DRAFT</span>`;
           }
 
+          const cachedPing = inboundLatencyCache[i.id];
+          let pingBadge = '';
+          if (cachedPing !== undefined && cachedPing !== null) {
+            pingBadge = `<span id="inboundPingBadge-${i.id}" class="px-2 py-0.5 text-[9px] font-bold rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 mono flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> ⚡ ${cachedPing} ms</span>`;
+          } else {
+            pingBadge = `<span id="inboundPingBadge-${i.id}" class="px-2 py-0.5 text-[9px] font-bold rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 mono flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span> READY</span>`;
+          }
+
           return `
             <div class="p-5 rounded-3xl emless-glass border border-white/10 space-y-4">
               <div class="flex items-start justify-between">
                 <div>
-                  <div class="flex items-center gap-2">
+                  <div class="flex items-center gap-2 flex-wrap">
                     <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-white/10 text-accent-gradient mono uppercase">${i.protocol}</span>
                     ${modeBadge}
                     ${statusBadge}
+                    ${pingBadge}
                   </div>
                   <h3 class="text-base font-bold text-white mt-1.5">${i.name}</h3>
                 </div>
                 <div class="flex items-center gap-2">
+                  <button onclick="pingInbound('${i.id}')" id="btnPing-${i.id}" class="px-2.5 py-1 rounded-xl text-xs font-bold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-all cursor-pointer flex items-center gap-1.5 shadow" title="Test Live Ping Latency">
+                    <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <span>Ping</span>
+                  </button>
                   <button onclick="deployInbound('${i.id}')" id="btnDeploy-${i.id}" class="px-3 py-1 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/15 text-white border border-white/20 transition-all cursor-pointer flex items-center gap-1.5 shadow" title="Deploy / Reload Configuration">
-                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
                     <span>Deploy</span>
                   </button>
                   <button onclick="toggleInbound('${i.id}')" class="px-3 py-1 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${i.enabled ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-white/5 text-white/40 border-white/10'}">
@@ -2279,7 +2298,10 @@
               <div class="flex items-center justify-between pt-2 border-t border-white/10">
                 <span class="text-xs text-white/50">${i.activeConnections} active sessions</span>
                 <div class="flex items-center gap-3">
-                  <button onclick="inspectInbound('${i.id}')" class="text-xs text-cyan-400 hover:underline cursor-pointer">Inspect URI</button>
+                  <button onclick="inspectInbound('${i.id}')" class="text-xs text-cyan-400 hover:underline cursor-pointer flex items-center gap-1">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    <span>Inspect URI & QR</span>
+                  </button>
                   <button onclick="deleteInbound('${i.id}')" class="text-xs text-red-400 hover:underline cursor-pointer">Delete</button>
                 </div>
               </div>
@@ -2288,6 +2310,81 @@
         }).join('');
       } catch (err) {
         console.error('Error fetching configurations:', err);
+      }
+    }
+
+    async function pingInbound(id) {
+      const btn = document.getElementById(`btnPing-${id}`);
+      const badge = document.getElementById(`inboundPingBadge-${id}`);
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span class="inline-block animate-spin">⟳</span> Testing...`;
+      }
+      if (badge) {
+        badge.innerHTML = `<span class="inline-block animate-spin text-[8px]">⟳</span> Testing Ping...`;
+        badge.className = `px-2 py-0.5 text-[9px] font-bold rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 mono flex items-center gap-1`;
+      }
+
+      try {
+        const res = await fetch(`/api/configurations/${id}/ping`, { method: 'POST' });
+        const data = await res.json();
+        if (data.ok && data.rttMs !== null) {
+          inboundLatencyCache[id] = data.rttMs;
+          if (badge) {
+            badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> ⚡ ${data.rttMs} ms`;
+            badge.className = `px-2 py-0.5 text-[9px] font-bold rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 mono flex items-center gap-1`;
+          }
+          showToast(`⚡ Inbound '${data.name}' Ping OK: ${data.rttMs}ms (Jitter: ${data.jitterMs}ms)`, 'success');
+        } else {
+          inboundLatencyCache[id] = null;
+          if (badge) {
+            badge.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-red-400"></span> ${data.status || 'UNREACHABLE'}`;
+            badge.className = `px-2 py-0.5 text-[9px] font-bold rounded-full bg-red-500/10 text-red-300 border border-red-500/30 mono flex items-center gap-1`;
+          }
+          showToast(`Inbound ping failed: ${data.error || data.message || 'Inactive'}`, 'error');
+        }
+      } catch (err) {
+        showToast('Network error during ping test', 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg><span>Ping</span>`;
+        }
+      }
+    }
+
+    async function pingAllInbounds() {
+      const btn = document.getElementById('btnPingAllInbounds');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span class="inline-block animate-spin">⟳</span> Pinging All...`;
+      }
+
+      try {
+        const res = await fetch('/api/configurations/ping-all', { method: 'POST' });
+        const data = await res.json();
+        if (data.ok && Array.isArray(data.results)) {
+          data.results.forEach(r => {
+            if (r.rttMs !== null) {
+              inboundLatencyCache[r.inboundId] = r.rttMs;
+              const b = document.getElementById(`inboundPingBadge-${r.inboundId}`);
+              if (b) {
+                b.innerHTML = `<span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> ⚡ ${r.rttMs} ms`;
+                b.className = `px-2 py-0.5 text-[9px] font-bold rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 mono flex items-center gap-1`;
+              }
+            }
+          });
+          showToast(`⚡ Batch Ping: ${data.onlineCount}/${data.totalTested} Inbounds Online (Avg RTT: ${data.avgRttMs || 0}ms)`, 'success');
+        } else {
+          showToast('Failed to run batch ping test', 'error');
+        }
+      } catch (err) {
+        showToast('Network error during batch ping', 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg><span>Ping All</span>`;
+        }
       }
     }
 
@@ -2303,6 +2400,8 @@
         const data = await res.json();
         if (res.ok) {
           showToast(data.message || `Inbound deployed successfully!`);
+          // Auto ping upon deploy
+          pingInbound(id);
         } else {
           showToast(`Deployment error: ${data.error || 'Unknown error'}`, 'error');
         }
@@ -2326,6 +2425,7 @@
         const data = await res.json();
         if (res.ok) {
           showToast(`Successfully deployed ${data.deployedCount} inbounds to kernel!`);
+          pingAllInbounds();
         } else {
           showToast(`Deployment finished with ${data.failedCount} failures`, 'error');
         }
@@ -2334,11 +2434,15 @@
       } finally {
         if (btn) {
           btn.disabled = false;
-          btn.innerHTML = `<svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg><span>Deploy All</span>`;
+          btn.innerHTML = `<svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg><span>Deploy All</span>`;
         }
         fetchConfigurations();
         fetchDashboardData();
       }
+    }
+
+    function openQrModal(clientId) {
+      inspectClientSub(clientId, 'Client');
     }
 
     async function inspectInbound(id) {

@@ -16,11 +16,14 @@ export class CloakWSTransport extends BaseTransport {
   }
 
   generateConfig(inbound, client, systemSettings, domain) {
-    if (!inbound.enabled) return null;
+    if (!inbound || !inbound.enabled) return null;
+
+    const effectiveDomain = domain || systemSettings.domain || systemSettings.serverIp || '127.0.0.1';
+    const tagSuffix = inbound.name ? `${inbound.name} · ${client.email}` : `EMLESS-CloakWS · ${client.email}`;
 
     // Cloak WS specific parameters with safe auto-generated fallbacks
     const cloakPath = inbound.path || `/cloak-ws-${inbound.id || 'stream'}`;
-    const maskSni = inbound.cloakMaskSni || inbound.sni || systemSettings.sni || domain;
+    const maskSni = inbound.cloakMaskSni || inbound.sni || systemSettings.sni || effectiveDomain;
     const earlyData = inbound.cloakEarlyData || '2048';
     const fp = inbound.fingerprint || 'chrome';
     const alpn = inbound.alpn || 'h2,http/1.1';
@@ -28,7 +31,7 @@ export class CloakWSTransport extends BaseTransport {
     if (inbound.protocol === 'vless') {
       const encodedPath = encodeURIComponent(cloakPath);
       // VLESS + Cloak WS Obfuscated URI
-      const uri = `vless://${client.uuid}@${domain}:${inbound.port}?type=ws&security=tls&path=${encodedPath}&host=${encodeURIComponent(maskSni)}&sni=${encodeURIComponent(maskSni)}&fp=${fp}&alpn=${encodeURIComponent(alpn)}&ed=${earlyData}#${encodeURIComponent('EMLESS-CloakWS-' + client.email)}`;
+      const uri = `vless://${client.uuid}@${effectiveDomain}:${inbound.port}?type=ws&security=tls&path=${encodedPath}&host=${encodeURIComponent(maskSni)}&sni=${encodeURIComponent(maskSni)}&fp=${fp}&alpn=${encodeURIComponent(alpn)}&ed=${earlyData}#${encodeURIComponent(tagSuffix)}`;
 
       return {
         id: inbound.id,
@@ -52,7 +55,7 @@ export class CloakWSTransport extends BaseTransport {
     } else if (inbound.protocol === 'trojan') {
       const encodedPath = encodeURIComponent(cloakPath);
       // Trojan + Cloak WS Obfuscated URI
-      const uri = `trojan://${client.password}@${domain}:${inbound.port}?type=ws&security=tls&path=${encodedPath}&host=${encodeURIComponent(maskSni)}&sni=${encodeURIComponent(maskSni)}&fp=${fp}&alpn=${encodeURIComponent(alpn)}&ed=${earlyData}#${encodeURIComponent('EMLESS-CloakWS-Trojan-' + client.email)}`;
+      const uri = `trojan://${client.password}@${effectiveDomain}:${inbound.port}?type=ws&security=tls&path=${encodedPath}&host=${encodeURIComponent(maskSni)}&sni=${encodeURIComponent(maskSni)}&fp=${fp}&alpn=${encodeURIComponent(alpn)}&ed=${earlyData}#${encodeURIComponent(tagSuffix)}`;
 
       return {
         id: inbound.id,
@@ -75,9 +78,11 @@ export class CloakWSTransport extends BaseTransport {
       };
     } else if (inbound.protocol === 'shadowsocks') {
       // Shadowsocks with Cloak/v2ray-plugin WS obfuscation
-      const creds = Buffer.from(`${inbound.method}:${inbound.password}`).toString('base64');
+      const method = inbound.method || '2022-blake3-aes-128-gcm';
+      const password = inbound.password || 'emlessSecretKeySS2022Blake3Secure==';
+      const creds = Buffer.from(`${method}:${password}`).toString('base64');
       const pluginOpts = encodeURIComponent(`obfs=websocket;path=${cloakPath};host=${maskSni};tls`);
-      const uri = `ss://${creds}@${domain}:${inbound.port}?plugin=v2ray-plugin%3B${pluginOpts}#${encodeURIComponent('EMLESS-CloakWS-SS-' + client.email)}`;
+      const uri = `ss://${creds}@${effectiveDomain}:${inbound.port}?plugin=v2ray-plugin%3B${pluginOpts}#${encodeURIComponent(tagSuffix)}`;
 
       return {
         id: inbound.id,
@@ -89,8 +94,8 @@ export class CloakWSTransport extends BaseTransport {
         uri,
         details: {
           port: inbound.port,
-          method: inbound.method,
-          password: inbound.password,
+          method,
+          password,
           path: cloakPath,
           sni: maskSni,
           fingerprint: fp,

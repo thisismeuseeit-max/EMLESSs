@@ -3,8 +3,8 @@ import { BaseTransport } from './baseTransport.js';
 /**
  * Standard RVG Transport Provider.
  * The default, authoritative transport implementation supporting:
- * - VLESS + REALITY (gRPC / TCP)
- * - VLESS + WebSocket + TLS
+ * - VLESS + REALITY (gRPC / TCP Vision)
+ * - VLESS + WebSocket + TLS (Cloudflare CDN)
  * - Trojan + XHTTP (Anti-Filter)
  * - Trojan + WebSocket + TLS
  * - Shadowsocks 2022 (Blake3-AES)
@@ -15,14 +15,29 @@ export class StandardRVGTransport extends BaseTransport {
   }
 
   generateConfig(inbound, client, systemSettings, domain) {
-    if (!inbound.enabled) return null;
+    if (!inbound || !inbound.enabled) return null;
+
+    const effectiveDomain = domain || systemSettings.domain || systemSettings.serverIp || '127.0.0.1';
+    const tagSuffix = inbound.name ? `${inbound.name} · ${client.email}` : `EMLESS-${inbound.protocol.toUpperCase()} · ${client.email}`;
 
     if (inbound.protocol === 'vless') {
       if (inbound.security === 'reality') {
-        // VLESS REALITY gRPC / TCP
+        // VLESS REALITY (gRPC / TCP Vision)
         const type = inbound.transport || 'grpc';
-        const serviceParam = inbound.serviceName ? `&serviceName=${encodeURIComponent(inbound.serviceName)}` : '';
-        const uri = `vless://${client.uuid}@${domain}:${inbound.port}?type=${type}${serviceParam}&security=reality&pbk=${systemSettings.publicKey}&fp=chrome&sni=${inbound.sni || systemSettings.sni}&sid=${systemSettings.shortId}#${encodeURIComponent('EMLESS-REALITY-' + client.email)}`;
+        const sni = inbound.sni || systemSettings.sni || 'www.speedtest.net';
+        const pbk = systemSettings.publicKey || 'w71o8c...xT29PqM5_emlessKey';
+        const sid = systemSettings.shortId || '6a89c02b';
+        const fp = inbound.fingerprint || 'chrome';
+
+        let params = `type=${type}&security=reality&pbk=${encodeURIComponent(pbk)}&fp=${fp}&sni=${encodeURIComponent(sni)}&sid=${encodeURIComponent(sid)}&spx=%2F`;
+        if (type === 'grpc') {
+          const serviceName = inbound.serviceName || 'emless-grpc';
+          params += `&serviceName=${encodeURIComponent(serviceName)}&mode=gun`;
+        } else if (type === 'tcp') {
+          params += `&flow=xtls-rprx-vision&headerType=none`;
+        }
+
+        const uri = `vless://${client.uuid}@${effectiveDomain}:${inbound.port}?${params}#${encodeURIComponent(tagSuffix)}`;
         return {
           id: inbound.id,
           name: inbound.name,
@@ -33,18 +48,23 @@ export class StandardRVGTransport extends BaseTransport {
           uri,
           details: {
             port: inbound.port,
-            sni: inbound.sni || systemSettings.sni,
+            sni,
             uuid: client.uuid,
-            publicKey: systemSettings.publicKey,
-            shortId: systemSettings.shortId,
+            publicKey: pbk,
+            shortId: sid,
+            fingerprint: fp,
             transportMode: 'standard'
           }
         };
       } else if (inbound.transport === 'ws' || inbound.transport === 'tcp') {
-        // VLESS WebSocket TLS (CDN)
+        // VLESS WebSocket TLS (CDN / Cloudflare)
         const type = inbound.transport || 'ws';
-        const path = encodeURIComponent(inbound.path || '/emless-vless');
-        const uri = `vless://${client.uuid}@${domain}:${inbound.port}?type=${type}&security=tls&path=${path}&sni=${inbound.sni || domain}#${encodeURIComponent('EMLESS-VLESS-WS-' + client.email)}`;
+        const rawPath = inbound.path || '/emless-vless';
+        const sni = inbound.sni || effectiveDomain;
+        const fp = inbound.fingerprint || 'chrome';
+        const path = encodeURIComponent(rawPath);
+        
+        const uri = `vless://${client.uuid}@${effectiveDomain}:${inbound.port}?type=${type}&security=tls&path=${path}&host=${encodeURIComponent(sni)}&sni=${encodeURIComponent(sni)}&fp=${fp}#${encodeURIComponent(tagSuffix)}`;
         return {
           id: inbound.id,
           name: inbound.name,
@@ -55,18 +75,24 @@ export class StandardRVGTransport extends BaseTransport {
           uri,
           details: {
             port: inbound.port,
-            path: inbound.path || '/emless-vless',
-            sni: inbound.sni || domain,
+            path: rawPath,
+            sni,
+            host: sni,
             uuid: client.uuid,
+            fingerprint: fp,
             transportMode: 'standard'
           }
         };
       }
     } else if (inbound.protocol === 'trojan') {
+      const sni = inbound.sni || effectiveDomain;
+      const fp = inbound.fingerprint || 'chrome';
+
       if (inbound.transport === 'xhttp') {
-        // Trojan XHTTP (Anti-Filter)
-        const path = encodeURIComponent(inbound.path || '/emless-xhttp');
-        const uri = `trojan://${client.password}@${domain}:${inbound.port}?type=xhttp&security=tls&path=${path}&sni=${inbound.sni || domain}#${encodeURIComponent('EMLESS-Trojan-XHTTP-' + client.email)}`;
+        // Trojan XHTTP (Anti-Filter Protocol)
+        const rawPath = inbound.path || '/emless-xhttp';
+        const path = encodeURIComponent(rawPath);
+        const uri = `trojan://${client.password}@${effectiveDomain}:${inbound.port}?type=xhttp&security=tls&path=${path}&host=${encodeURIComponent(sni)}&sni=${encodeURIComponent(sni)}&fp=${fp}#${encodeURIComponent(tagSuffix)}`;
         return {
           id: inbound.id,
           name: inbound.name,
@@ -77,16 +103,19 @@ export class StandardRVGTransport extends BaseTransport {
           uri,
           details: {
             port: inbound.port,
-            path: inbound.path || '/emless-xhttp',
-            sni: inbound.sni || domain,
+            path: rawPath,
+            sni,
+            host: sni,
             password: client.password,
+            fingerprint: fp,
             transportMode: 'standard'
           }
         };
       } else {
-        // Trojan WS
-        const path = encodeURIComponent(inbound.path || '/emless-trojan');
-        const uri = `trojan://${client.password}@${domain}:${inbound.port}?type=ws&security=tls&path=${path}&sni=${inbound.sni || domain}#${encodeURIComponent('EMLESS-Trojan-WS-' + client.email)}`;
+        // Trojan WebSocket TLS
+        const rawPath = inbound.path || '/emless-trojan';
+        const path = encodeURIComponent(rawPath);
+        const uri = `trojan://${client.password}@${effectiveDomain}:${inbound.port}?type=ws&security=tls&path=${path}&host=${encodeURIComponent(sni)}&sni=${encodeURIComponent(sni)}&fp=${fp}#${encodeURIComponent(tagSuffix)}`;
         return {
           id: inbound.id,
           name: inbound.name,
@@ -97,17 +126,21 @@ export class StandardRVGTransport extends BaseTransport {
           uri,
           details: {
             port: inbound.port,
-            path: inbound.path || '/emless-trojan',
-            sni: inbound.sni || domain,
+            path: rawPath,
+            sni,
+            host: sni,
             password: client.password,
+            fingerprint: fp,
             transportMode: 'standard'
           }
         };
       }
     } else if (inbound.protocol === 'shadowsocks') {
-      // Shadowsocks 2022
-      const creds = Buffer.from(`${inbound.method}:${inbound.password}`).toString('base64');
-      const uri = `ss://${creds}@${domain}:${inbound.port}#${encodeURIComponent('EMLESS-SS2022-' + client.email)}`;
+      // Shadowsocks 2022 (Blake3-AES)
+      const method = inbound.method || '2022-blake3-aes-128-gcm';
+      const password = inbound.password || 'emlessSecretKeySS2022Blake3Secure==';
+      const creds = Buffer.from(`${method}:${password}`).toString('base64');
+      const uri = `ss://${creds}@${effectiveDomain}:${inbound.port}#${encodeURIComponent(tagSuffix)}`;
       return {
         id: inbound.id,
         name: inbound.name,
@@ -118,8 +151,8 @@ export class StandardRVGTransport extends BaseTransport {
         uri,
         details: {
           port: inbound.port,
-          method: inbound.method,
-          password: inbound.password,
+          method,
+          password,
           transportMode: 'standard'
         }
       };

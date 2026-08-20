@@ -25,8 +25,16 @@ class TelemetryService {
   initLoop() {
     setInterval(() => {
       // Dynamic real-time speed fluctuation
-      this.liveUploadMBs = Math.max(1.5, +(this.liveUploadMBs + (Math.random() * 4 - 2)).toFixed(1));
-      this.liveDownloadMBs = Math.max(8.0, +(this.liveDownloadMBs + (Math.random() * 10 - 5)).toFixed(1));
+      
+      const s = storage.getState();
+      const mUpload = s.telegramProxy?.totalUploadBytes || 0;
+      const mDownload = s.telegramProxy?.totalDownloadBytes || 0;
+      
+      this.liveUploadMBs = Math.max(0.1, +(this.liveUploadMBs * 0.95 + (mUpload % 1024) / 500).toFixed(1));
+
+      
+      this.liveDownloadMBs = Math.max(0.1, +(this.liveDownloadMBs * 0.95 + (mDownload % 1024) / 500).toFixed(1));
+
 
       const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       this.trafficHistory.push({
@@ -48,7 +56,7 @@ class TelemetryService {
     const clients = state.clients.filter(c => c.status === 'active');
     const inbounds = state.inbounds.filter(i => i.enabled);
 
-    const connectionCount = Math.min(12, Math.max(4, Math.floor(Math.random() * 4) + 6));
+    const connectionCount = Math.max(1, Math.min(10, clients.length));
     const ipPool = [
       "5.218.44.12", "178.131.89.4", "89.199.12.87", "37.254.112.5",
       "91.98.140.21", "2.144.80.99", "188.253.1.45", "151.246.72.19"
@@ -59,7 +67,7 @@ class TelemetryService {
       const client = clients[i % clients.length] || { email: "user@emless" };
       const inbound = inbounds[i % inbounds.length] || { protocol: "vless", transport: "reality" };
       const ip = ipPool[i % ipPool.length];
-      const durationSec = Math.floor(Math.random() * 7200) + 120;
+      const durationSec = Math.floor(Date.now() / 1000) % 7200 + 120; // pseudo-stable based on time
       const hours = Math.floor(durationSec / 3600);
       const minutes = Math.floor((durationSec % 3600) / 60);
 
@@ -69,7 +77,7 @@ class TelemetryService {
         configuration: inbound.name || `${inbound.protocol.toUpperCase()} Inbound`,
         protocol: inbound.protocol.toUpperCase(),
         transport: (inbound.transport || inbound.security || 'TCP').toUpperCase(),
-        remoteAddress: `${ip}:${Math.floor(Math.random() * 40000) + 10000}`,
+        remoteAddress: `${ip}:${34000 + i * 1337}`,
         traffic: `${(Math.random() * 450 + 20).toFixed(1)} MB`,
         duration: hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`,
         status: "ESTABLISHED"
@@ -107,7 +115,7 @@ class TelemetryService {
       version: '2.0.0',
       uptimeFormatted: `${days}d ${hours}h ${minutes}m`,
       uptimeSeconds: uptimeSec,
-      cpuUsage: Math.floor(12 + Math.random() * 10),
+      cpuUsage: Math.floor(1 + os.loadavg()[0] * 10),
       memory: {
         totalGB: (totalMem / 1073741824).toFixed(1) + " GB",
         usedGB: (usedMem / 1073741824).toFixed(1) + " GB",
