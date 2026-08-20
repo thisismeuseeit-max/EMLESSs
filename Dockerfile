@@ -10,8 +10,6 @@ RUN npm install --omit=dev
 
 COPY . .
 
-VOLUME ["/data"]
-
 EXPOSE 8080
 EXPOSE 8444
 

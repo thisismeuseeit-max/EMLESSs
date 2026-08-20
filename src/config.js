@@ -37,16 +37,13 @@ function getOrGenerateSecretKey() {
   return defaultSecret;
 }
 
-// Database directory & path detection (Defaults strictly to /data/panel.db for Railway Volume)
+// Database directory & path detection (Directly uses /data/panel.db for Railway Persistent Volume)
 function getDatabasePath() {
   if (process.env.DB_PATH && process.env.DB_PATH.trim()) {
     return process.env.DB_PATH.trim();
   }
-  // Railway persistent volume path check
-  if (fs.existsSync('/data')) {
-    return '/data/panel.db';
-  }
-  return path.resolve(process.cwd(), 'panel.db');
+  // Direct persistent storage default path (mapped by Railway Persistent Volume)
+  return '/data/panel.db';
 }
 
 export const config = {

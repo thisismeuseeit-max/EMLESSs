@@ -265,12 +265,17 @@ class StorageManager {
 
   loadFromFile() {
     try {
-      const dbPath = config.dbPath;
+      let dbPath = config.dbPath;
       
       // Ensure target directory exists idempotently
-      const dir = path.dirname(dbPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
+      try {
+        const dir = path.dirname(dbPath);
+        if (!fs.existsSync(dir)) {
+          fs.mkdirSync(dir, { recursive: true });
+        }
+      } catch (dirErr) {
+        console.warn(`[EMLESS DB] Could not create directory for ${dbPath}, falling back to local panel.db:`, dirErr.message);
+        dbPath = path.resolve(process.cwd(), 'panel.db');
       }
 
       if (fs.existsSync(dbPath)) {
@@ -301,7 +306,7 @@ class StorageManager {
           }
         }
 
-        this.saveToFile();
+        this.saveToFile(dbPath);
         if (!migrated) {
           console.log(`[EMLESS DB] Initialized fresh state at: ${dbPath}`);
         }
@@ -311,16 +316,22 @@ class StorageManager {
     }
   }
 
-  saveToFile() {
+  saveToFile(targetPath = null) {
+    let dbPath = targetPath || config.dbPath;
     try {
-      const dbPath = config.dbPath;
       const dir = path.dirname(dbPath);
       if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
       }
       fs.writeFileSync(dbPath, JSON.stringify(this.data, null, 2), 'utf-8');
     } catch (err) {
-      console.error('[EMLESS DB] Error saving to state file:', err);
+      console.warn(`[EMLESS DB] Could not save to ${dbPath} (${err.message}). Trying fallback ./panel.db...`);
+      try {
+        const fallbackPath = path.resolve(process.cwd(), 'panel.db');
+        fs.writeFileSync(fallbackPath, JSON.stringify(this.data, null, 2), 'utf-8');
+      } catch (fallbackErr) {
+        console.error('[EMLESS DB] Critical error saving state file:', fallbackErr);
+      }
     }
   }
 
