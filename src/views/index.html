@@ -1,0 +1,3392 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EMLESS · Control Center</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script>
+  tailwind.config = {
+    darkMode: 'class',
+    theme: {
+      extend: {
+        colors: {
+          emless: {
+            bg: '#161616',
+            card: 'rgba(255, 255, 255, 0.05)',
+            cardHover: 'rgba(255, 255, 255, 0.08)',
+            border: 'rgba(255, 255, 255, 0.10)',
+            borderHover: 'rgba(255, 255, 255, 0.18)',
+            accentStart: '#ffc5dc',
+            accentEnd: '#fd86db',
+            violet: '#8b5cf6',
+            indigo: '#6366f1',
+            cyan: '#06b6d4'
+          }
+        },
+        fontFamily: {
+          sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+          mono: ['"JetBrains Mono"', 'monospace']
+        }
+      }
+    }
+  }
+</script>
+
+<style>
+  :root {
+    --bg-base: #161616;
+    --text-primary: #FFFFFF;
+    --text-secondary: rgba(255, 255, 255, 0.65);
+    --glass-bg: rgba(255, 255, 255, 0.06);
+    --glass-border: rgba(255, 255, 255, 0.10);
+    --accent-gradient: linear-gradient(135deg, #ffc5dc 0%, #fd86db 100%);
+  }
+
+  body {
+    background-color: #161616;
+    color: #FFFFFF;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    overflow-x: hidden;
+  }
+
+  .mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Glassmorphism Classes */
+  .emless-glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.10);
+  }
+
+  .emless-glass-subtle {
+    background: rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+  }
+
+  .emless-glass-elevated {
+    background: rgba(26, 26, 26, 0.85);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Gradients & Accents */
+  .text-accent-gradient {
+    background: linear-gradient(135deg, #ffc5dc 0%, #fd86db 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .bg-accent-gradient {
+    background: linear-gradient(135deg, #ffc5dc 0%, #fd86db 100%);
+  }
+
+  .btn-accent {
+    background: linear-gradient(135deg, #ffc5dc 0%, #fd86db 100%);
+    color: #161616;
+    font-weight: 700;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  .btn-accent:hover {
+    filter: brightness(1.08);
+    box-shadow: 0 0 24px rgba(253, 134, 219, 0.35);
+    transform: translateY(-1px);
+  }
+  .btn-accent:active {
+    transform: translateY(0);
+  }
+
+  .nav-active {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(253, 134, 219, 0.4);
+    color: #FFFFFF;
+    box-shadow: inset 0 0 16px rgba(253, 134, 219, 0.08);
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgba(22, 22, 22, 0.8);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.16);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.28);
+  }
+
+  /* Ambient animated background canvas */
+  #ambientCanvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.65;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #ambientCanvas {
+      display: none;
+    }
+  }
+</style>
+</head>
+<body class="min-h-screen bg-[#161616] text-white flex flex-col relative selection:bg-[#fd86db]/30 selection:text-white">
+
+  <!-- Ambient Animated Gradient Canvas -->
+  <canvas id="ambientCanvas"></canvas>
+
+  <!-- ================= AUTH VIEW ================= -->
+  <div id="authView" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#161616]/90 backdrop-blur-xl">
+    <div class="w-full max-w-md emless-glass-elevated rounded-3xl p-8 sm:p-10 relative overflow-hidden">
+      <!-- Glow ambient top -->
+      <div class="absolute -top-24 -left-24 w-48 h-48 bg-[#fd86db]/20 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-24 -right-24 w-48 h-48 bg-[#8b5cf6]/20 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="text-center mb-8 relative z-10">
+        <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/5 border border-white/15 shadow-2xl mb-4 text-accent-gradient text-2xl font-extrabold tracking-tighter">
+          EM
+        </div>
+        <h1 class="text-3xl font-extrabold tracking-tight text-white flex items-center justify-center gap-2">
+          EMLESS
+        </h1>
+        <p class="text-xs text-white/60 mt-2 font-medium tracking-wide">ENTERPRISE CONTROL CENTER</p>
+      </div>
+
+      <form id="loginForm" class="space-y-4 relative z-10">
+        <div>
+          <label class="block text-xs font-semibold text-white/70 mb-2">Admin Username</label>
+          <input 
+            type="text" 
+            id="loginUsername" 
+            value="admin"
+            placeholder="admin" 
+            class="w-full px-4 py-3.5 bg-black/40 border border-white/10 rounded-xl text-white placeholder-white/30 text-sm focus:outline-none focus:border-[#fd86db]/60 transition-all mono"
+          >
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-white/70 mb-2">Access Key / Password</label>
+          <input 
+            type="password" 
+            id="loginPassword" 
+            placeholder="Default: 123456" 
+            required 
+            class="w-full px-4 py-3.5 bg-black/40 border border-white/10 rounded-xl text-white placeholder-white/30 text-sm focus:outline-none focus:border-[#fd86db]/60 transition-all mono"
+          >
+        </div>
+
+        <div id="loginError" class="hidden p-3 rounded-xl bg-red-500/10 border border-red-500/25 text-red-300 text-xs text-center font-medium"></div>
+
+        <button 
+          type="submit" 
+          id="loginBtn"
+          class="w-full py-3.5 px-4 btn-accent rounded-xl text-sm font-bold flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-[#fd86db]/20 mt-2"
+        >
+          <span>Authenticate Session</span>
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+        </button>
+      </form>
+
+      <div class="mt-8 pt-6 border-t border-white/10 flex items-center justify-between text-[11px] text-white/50">
+        <span class="flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          Core v2.0 Ready
+        </span>
+        <span class="mono">Railway Deployable</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= APP CONTAINER ================= -->
+  <div id="appContainer" class="hidden min-h-screen flex flex-col relative z-10">
+
+    <!-- TOP NAV HEADER -->
+    <header class="h-18 border-b border-white/10 bg-[#161616]/70 backdrop-blur-2xl sticky top-0 z-40 px-4 lg:px-8 flex items-center justify-between">
+      <div class="flex items-center gap-3.5">
+        <!-- Mobile Drawer Hamburger Toggle (Visible on screens < lg) -->
+        <button onclick="toggleMobileNav()" id="mobileMenuBtn" class="lg:hidden p-2 rounded-xl emless-glass hover:bg-white/10 text-white transition-colors cursor-pointer" aria-label="Toggle Navigation">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+
+        <div class="w-10 h-10 rounded-xl bg-white/5 border border-white/15 flex items-center justify-center text-accent-gradient font-black text-lg shadow-lg">
+          EM
+        </div>
+        <div>
+          <div class="flex items-center gap-2.5">
+            <h1 class="text-lg font-black tracking-tight text-white">EMLESS</h1>
+            <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-white/5 border border-white/15 text-accent-gradient mono">v2.2.0</span>
+          </div>
+          <p class="text-[11px] text-white/50 hidden sm:flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="headerLiveStatus">System Online · All Transports Active</span>
+          </p>
+        </div>
+      </div>
+
+      <!-- Quick Header Actions -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Live Traffic Pill -->
+        <div class="hidden md:flex items-center gap-3 px-3.5 py-1.5 rounded-xl emless-glass text-xs font-medium">
+          <span class="flex items-center gap-1 text-emerald-400 mono">↑ <span id="headerUpSpeed">12.4</span> MB/s</span>
+          <span class="w-px h-3 bg-white/15"></span>
+          <span class="flex items-center gap-1 text-cyan-400 mono">↓ <span id="headerDownSpeed">48.2</span> MB/s</span>
+        </div>
+
+        <!-- MTProto Quick Status Pill -->
+        <button onclick="switchTab('telegram-proxy')" class="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl emless-glass hover:bg-white/10 border border-white/10 text-xs transition-colors cursor-pointer" title="Telegram Proxy Status">
+          <span class="w-2 h-2 rounded-full bg-emerald-400" id="headerTgDot"></span>
+          <span class="text-white/70">MTProto:</span>
+          <span class="font-bold text-accent-gradient mono" id="headerTgPort">:8444</span>
+        </button>
+
+        <!-- Refresh Button -->
+        <button onclick="refreshCurrentView()" class="p-2 rounded-xl emless-glass hover:bg-white/10 text-white/80 transition-all cursor-pointer" title="Refresh Telemetry">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+        </button>
+
+        <!-- Logout -->
+        <button onclick="logout()" class="px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-300 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+          <span class="hidden sm:inline">Exit</span>
+        </button>
+      </div>
+    </header>
+
+    <!-- MOBILE NAVIGATION DRAWER & BACKDROP -->
+    <div id="mobileNavBackdrop" onclick="toggleMobileNav(false)" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm lg:hidden transition-opacity"></div>
+    <aside id="mobileNavDrawer" class="fixed top-0 left-0 bottom-0 w-72 max-w-[85vw] z-50 emless-glass-elevated border-r border-white/15 p-5 flex flex-col justify-between transform -translate-x-full transition-transform duration-300 ease-in-out lg:hidden">
+      <div class="space-y-4">
+        <div class="flex items-center justify-between pb-3 border-b border-white/10">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-white/5 border border-white/15 flex items-center justify-center text-accent-gradient font-bold text-sm">EM</div>
+            <span class="font-extrabold text-white text-base">EMLESS</span>
+          </div>
+          <button onclick="toggleMobileNav(false)" class="p-1.5 rounded-lg text-white/60 hover:text-white hover:bg-white/10 text-sm">✕</button>
+        </div>
+
+        <nav class="flex flex-col gap-1 overflow-y-auto max-h-[calc(100vh-180px)] pr-1" id="mobileNavList">
+          <button onclick="switchTab('dashboard'); toggleMobileNav(false)" id="mobtab-dashboard" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-pink-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            <span>Dashboard</span>
+          </button>
+          <button onclick="switchTab('connections'); toggleMobileNav(false)" id="mobtab-connections" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-cyan-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <span>Connections</span>
+          </button>
+          <button onclick="switchTab('configurations'); toggleMobileNav(false)" id="mobtab-configurations" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+            <span>Configurations</span>
+          </button>
+          <button onclick="switchTab('clients'); toggleMobileNav(false)" id="mobtab-clients" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-violet-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            <span>Clients</span>
+          </button>
+          <button onclick="switchTab('subscriptions'); toggleMobileNav(false)" id="mobtab-subscriptions" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+            <span>Subscriptions</span>
+          </button>
+          <button onclick="switchTab('traffic'); toggleMobileNav(false)" id="mobtab-traffic" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            <span>Traffic</span>
+          </button>
+          <button onclick="switchTab('telegram-proxy'); toggleMobileNav(false)" id="mobtab-telegram-proxy" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-sky-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+            <span class="flex-1">Telegram Proxy</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+          </button>
+          <button onclick="switchTab('transport'); toggleMobileNav(false)" id="mobtab-transport" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-cyan-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+            <span>Transport</span>
+          </button>
+          <button onclick="switchTab('system'); toggleMobileNav(false)" id="mobtab-system" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+            <span>System</span>
+          </button>
+          <button onclick="switchTab('settings'); toggleMobileNav(false)" id="mobtab-settings" class="w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-purple-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <span>Settings</span>
+          </button>
+        </nav>
+      </div>
+
+      <div class="p-3 rounded-2xl bg-white/5 border border-white/10 text-[11px] space-y-1 text-white/60">
+        <div>Kernel: <b class="text-white">RVG + MTProto</b></div>
+        <div>Transports: <b class="text-accent-gradient">Standard + Cloak WS</b></div>
+      </div>
+    </aside>
+
+    <!-- BODY LAYOUT WITH SIDEBAR -->
+    <div class="flex-1 flex flex-col lg:flex-row">
+      
+      <!-- DESKTOP / TABLET SIDEBAR -->
+      <aside class="hidden lg:flex w-64 border-r border-white/10 bg-[#161616]/40 p-4 shrink-0 flex-col justify-between">
+        <nav class="flex flex-col gap-1.5" id="sidebarNav">
+          <!-- 1. Dashboard -->
+          <button onclick="switchTab('dashboard')" id="tab-dashboard" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer nav-active">
+            <svg class="w-4 h-4 text-pink-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+            <span>Dashboard</span>
+          </button>
+
+          <!-- 2. Connections -->
+          <button onclick="switchTab('connections')" id="tab-connections" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-cyan-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            <span>Connections</span>
+          </button>
+
+          <!-- 3. Configurations -->
+          <button onclick="switchTab('configurations')" id="tab-configurations" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-indigo-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+            <span>Configurations</span>
+          </button>
+
+          <!-- 4. Clients -->
+          <button onclick="switchTab('clients')" id="tab-clients" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-violet-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            <span>Clients</span>
+          </button>
+
+          <!-- 5. Subscriptions -->
+          <button onclick="switchTab('subscriptions')" id="tab-subscriptions" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+            <span>Subscriptions</span>
+          </button>
+
+          <!-- 6. Traffic -->
+          <button onclick="switchTab('traffic')" id="tab-traffic" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-amber-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            <span>Traffic</span>
+          </button>
+
+          <!-- 7. Telegram Proxy -->
+          <button onclick="switchTab('telegram-proxy')" id="tab-telegram-proxy" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-sky-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+            <span class="flex-1">Telegram Proxy</span>
+            <span class="w-2 h-2 rounded-full bg-emerald-400 shrink-0"></span>
+          </button>
+
+          <!-- 8. Transport -->
+          <button onclick="switchTab('transport')" id="tab-transport" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-cyan-300 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+            <span>Transport</span>
+          </button>
+
+          <!-- 9. System -->
+          <button onclick="switchTab('system')" id="tab-system" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-rose-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>
+            <span>System</span>
+          </button>
+
+          <!-- 10. Settings -->
+          <button onclick="switchTab('settings')" id="tab-settings" class="sidebar-btn w-full text-left px-3.5 py-2.5 rounded-xl border border-transparent text-white/70 hover:text-white hover:bg-white/5 text-xs font-semibold flex items-center gap-3 transition-all cursor-pointer">
+            <svg class="w-4 h-4 text-purple-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <span>Settings</span>
+          </button>
+        </nav>
+
+        <!-- Sidebar Footer Specs -->
+        <div class="mt-6 p-4 rounded-2xl emless-glass text-xs space-y-2">
+          <div class="text-[10px] font-bold text-white/40 uppercase tracking-widest">DEPLOYMENT TARGET</div>
+          <div class="flex items-center justify-between text-white/80">
+            <span class="text-white/50">Host:</span>
+            <span id="sideDomain" class="mono text-xs text-accent-gradient font-bold truncate max-w-[120px]">railway.app</span>
+          </div>
+          <div class="flex items-center justify-between text-white/80">
+            <span class="text-white/50">Storage:</span>
+            <span id="sideStorage" class="mono text-xs text-emerald-400">PostgreSQL / File</span>
+          </div>
+          <div class="flex items-center justify-between text-white/80">
+            <span class="text-white/50">Uptime:</span>
+            <span id="sideUptime" class="mono text-xs text-white">0d 00h</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- MAIN CONTENT -->
+      <main class="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full">
+
+        <!-- ================= 1. VIEW: DASHBOARD ================= -->
+        <section id="view-dashboard" class="space-y-6">
+          
+          <!-- Hero Banner Section -->
+          <div class="relative overflow-hidden rounded-3xl emless-glass p-6 sm:p-8 border border-white/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div class="space-y-2 relative z-10">
+              <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-accent-gradient">
+                <span class="w-2 h-2 rounded-full bg-[#fd86db] animate-ping"></span>
+                EMLESS Kernel Active
+              </div>
+              <h2 class="text-3xl sm:text-4xl font-extrabold tracking-tight text-white">
+                EMLESS <span class="text-accent-gradient">Control Center</span>
+              </h2>
+              <p class="text-sm text-white/60 max-w-xl">
+                Unified proxy gateway engine orchestrating VLESS REALITY, Trojan XHTTP, Shadowsocks 2022, and dedicated Telegram MTProto services.
+              </p>
+            </div>
+
+            <!-- Quick Action Buttons -->
+            <div class="flex flex-wrap items-center gap-2.5 relative z-10">
+              <button onclick="openAddClientModal()" class="px-4 py-2.5 btn-accent rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-lg">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <span>New Client</span>
+              </button>
+              <button onclick="openAddInboundModal()" class="px-4 py-2.5 emless-glass hover:bg-white/10 border border-white/15 rounded-xl text-xs font-bold text-white flex items-center gap-2 cursor-pointer transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+                <span>New Configuration</span>
+              </button>
+            </div>
+
+            <!-- Background organic glow -->
+            <div class="absolute right-0 top-0 w-96 h-96 bg-gradient-to-br from-[#fd86db]/10 to-[#8b5cf6]/10 rounded-full blur-3xl pointer-events-none"></div>
+          </div>
+
+          <!-- Glass Metric Cards Grid -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            
+            <!-- Card 1: Active Connections -->
+            <div class="p-5 rounded-3xl emless-glass border border-white/10 hover:border-white/20 transition-all">
+              <div class="flex items-center justify-between text-xs text-white/60 font-semibold">
+                <span>Active Connections</span>
+                <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              </div>
+              <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-black text-white mono" id="dashConnections">142</span>
+                <span class="text-xs text-white/50">live sessions</span>
+              </div>
+              <div class="mt-2 text-[11px] text-white/50 flex items-center justify-between">
+                <span>Core tunnels: <b class="text-white mono" id="dashCoreConn">94</b></span>
+                <span>MTProto: <b class="text-accent-gradient mono" id="dashTgConn">48</b></span>
+              </div>
+            </div>
+
+            <!-- Card 2: Total Traffic -->
+            <div class="p-5 rounded-3xl emless-glass border border-white/10 hover:border-white/20 transition-all">
+              <div class="flex items-center justify-between text-xs text-white/60 font-semibold">
+                <span>Total Bandwidth</span>
+                <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2 1 3 3 3h10c2 0 3-1 3-3V7c0-2-1-3-3-3H7C5 4 4 5 4 7z"/></svg>
+              </div>
+              <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-black text-white mono" id="dashTotalTraffic">4.34</span>
+                <span class="text-xs text-white/50 font-bold">TB</span>
+              </div>
+              <div class="mt-2 text-[11px] text-white/50 flex items-center justify-between mono">
+                <span class="text-emerald-400">↑ <span id="dashUploadTotal">842 GB</span></span>
+                <span class="text-cyan-400">↓ <span id="dashDownloadTotal">3.50 TB</span></span>
+              </div>
+            </div>
+
+            <!-- Card 3: Active Clients & Inbounds -->
+            <div class="p-5 rounded-3xl emless-glass border border-white/10 hover:border-white/20 transition-all">
+              <div class="flex items-center justify-between text-xs text-white/60 font-semibold">
+                <span>Clients & Inbounds</span>
+                <svg class="w-4 h-4 text-pink-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+              </div>
+              <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-3xl font-black text-accent-gradient mono" id="dashActiveClients">3</span>
+                <span class="text-xs text-white/50">/ <span id="dashTotalClients">3</span> Active Users</span>
+              </div>
+              <div class="mt-2 text-[11px] text-white/50 flex items-center justify-between">
+                <span>Protocols: <b class="text-white mono" id="dashActiveInbounds">5</b> Active</span>
+                <span>Subs: <b class="text-emerald-400 mono">Synced</b></span>
+              </div>
+            </div>
+
+            <!-- Card 4: Telegram Proxy -->
+            <div class="p-5 rounded-3xl emless-glass border border-white/10 hover:border-white/20 transition-all">
+              <div class="flex items-center justify-between text-xs text-white/60 font-semibold">
+                <span>Telegram MTProto</span>
+                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" id="dashTgBadge">RUNNING</span>
+              </div>
+              <div class="mt-3 flex items-baseline gap-2">
+                <span class="text-2xl font-black text-white mono" id="dashTgPortText">:8444</span>
+                <span class="text-xs text-white/50">Fake TLS</span>
+              </div>
+              <div class="mt-2 text-[11px] text-white/50 flex items-center justify-between">
+                <span class="truncate max-w-[140px]">SNI: <b class="text-white mono" id="dashTgSni">speedtest.net</b></span>
+                <button onclick="switchTab('telegram-proxy')" class="text-accent-gradient font-bold hover:underline">Manage →</button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Live Bandwidth Chart & Recent Activity -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Chart Card -->
+            <div class="lg:col-span-2 p-6 rounded-3xl emless-glass border border-white/10 flex flex-col justify-between">
+              <div class="flex items-center justify-between mb-4">
+                <div>
+                  <h3 class="text-sm font-bold text-white">Live Network Throughput</h3>
+                  <p class="text-xs text-white/60">Real-time upload and download rate (MB/s)</p>
+                </div>
+                <div class="flex items-center gap-4 text-xs mono">
+                  <span class="flex items-center gap-1.5 text-emerald-400">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span> Upload
+                  </span>
+                  <span class="flex items-center gap-1.5 text-cyan-400">
+                    <span class="w-2 h-2 rounded-full bg-cyan-400"></span> Download
+                  </span>
+                </div>
+              </div>
+              <div class="h-64 w-full relative">
+                <canvas id="dashTrafficChart"></canvas>
+              </div>
+            </div>
+
+            <!-- Inbounds Quick Status -->
+            <div class="p-6 rounded-3xl emless-glass border border-white/10 flex flex-col justify-between">
+              <div>
+                <div class="flex items-center justify-between mb-3">
+                  <h3 class="text-sm font-bold text-white">Active Configurations</h3>
+                  <button onclick="switchTab('configurations')" class="text-xs text-accent-gradient font-bold hover:underline">View All</button>
+                </div>
+                <p class="text-xs text-white/60 mb-4">Core inbounds listening on network ports</p>
+
+                <div class="space-y-2.5 max-h-56 overflow-y-auto pr-1" id="dashInboundsList">
+                  <!-- Inbound items dynamically loaded -->
+                </div>
+              </div>
+
+              <div class="pt-4 mt-4 border-t border-white/10 flex items-center justify-between text-xs text-white/50">
+                <span>System Uptime</span>
+                <span class="mono text-white font-bold" id="dashUptime">0d 00h 00m</span>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- ================= 2. VIEW: CONNECTIONS ================= -->
+        <section id="view-connections" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-2xl font-bold text-white">Active Connections</h2>
+              <p class="text-xs text-white/60">Live authenticated client sessions and active tunnel sockets</p>
+            </div>
+            <button onclick="fetchConnections()" class="px-4 py-2 emless-glass hover:bg-white/10 border border-white/15 rounded-xl text-xs font-bold text-white flex items-center gap-2 cursor-pointer transition-colors">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              <span>Refresh Sessions</span>
+            </button>
+          </div>
+
+          <!-- Connections Table -->
+          <div class="rounded-3xl emless-glass border border-white/10 overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-white/5 text-white/60 border-b border-white/10 uppercase tracking-wider font-semibold">
+                  <tr>
+                    <th class="py-3.5 px-4">Client ID</th>
+                    <th class="py-3.5 px-4">Configuration</th>
+                    <th class="py-3.5 px-4">Protocol</th>
+                    <th class="py-3.5 px-4">Transport</th>
+                    <th class="py-3.5 px-4">Remote Endpoint</th>
+                    <th class="py-3.5 px-4">Traffic</th>
+                    <th class="py-3.5 px-4">Duration</th>
+                    <th class="py-3.5 px-4 text-center">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="connectionsTableBody" class="divide-y divide-white/5 text-white/80">
+                  <!-- Dynamic connection rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= 3. VIEW: CONFIGURATIONS ================= -->
+        <section id="view-configurations" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-2xl font-bold text-white">Configurations & Inbounds</h2>
+              <p class="text-xs text-white/60">Manage VLESS REALITY, Trojan XHTTP, WS TLS, and Shadowsocks endpoints</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <button onclick="deployAllConfigurations()" id="btnDeployAllInbounds" class="px-4 py-2.5 emless-glass hover:bg-white/10 border border-white/20 rounded-xl text-xs font-bold text-white flex items-center gap-2 cursor-pointer transition-all shadow">
+                <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                <span>Deploy All</span>
+              </button>
+              <button onclick="openAddInboundModal()" class="px-4 py-2.5 btn-accent rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-lg">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <span>Create Inbound</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="inboundsGrid">
+            <!-- Dynamic Inbound Cards -->
+          </div>
+        </section>
+
+        <!-- ================= 4. VIEW: CLIENTS ================= -->
+        <section id="view-clients" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h2 class="text-2xl font-bold text-white">Clients & Access Quotas</h2>
+              <p class="text-xs text-white/60">Generate subscription links, assign UUIDs, and set bandwidth quotas</p>
+            </div>
+            <button onclick="openAddClientModal()" class="px-4 py-2.5 btn-accent rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-lg">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+              <span>Add Client</span>
+            </button>
+          </div>
+
+          <!-- Clients Table -->
+          <div class="rounded-3xl emless-glass border border-white/10 overflow-hidden">
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead class="bg-white/5 text-white/60 border-b border-white/10 uppercase tracking-wider font-semibold">
+                  <tr>
+                    <th class="py-3.5 px-4">Client Email / Tag</th>
+                    <th class="py-3.5 px-4">UUID / Password</th>
+                    <th class="py-3.5 px-4">Bandwidth Usage</th>
+                    <th class="py-3.5 px-4">Expiry</th>
+                    <th class="py-3.5 px-4">Status</th>
+                    <th class="py-3.5 px-4 text-center">Subscription & Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="clientsTableBody" class="divide-y divide-white/5 text-white/80">
+                  <!-- Dynamic Client Rows -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= 5. VIEW: SUBSCRIPTIONS ================= -->
+        <section id="view-subscriptions" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2.5">
+                <h2 class="text-2xl font-bold text-white">EMLESS Subscriptions</h2>
+                <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 uppercase tracking-wide">V2Ray / Xray Engine</span>
+              </div>
+              <p class="text-xs text-white/60">Standard V2Ray-compatible subscriptions for Hiddify, v2rayNG, NekoBox, Sing-box, V2Box, and Shadowrocket</p>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button onclick="openAddClientModal()" class="px-4 py-2.5 btn-accent rounded-xl text-xs font-bold flex items-center gap-2 cursor-pointer shadow-lg">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <span>New Subscription</span>
+              </button>
+              <button onclick="fetchSubscriptions()" class="p-2.5 emless-glass hover:bg-white/10 border border-white/15 rounded-xl text-white/80 hover:text-white transition-colors cursor-pointer" title="Refresh Subscriptions">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <!-- Subscription Stats Overview -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="p-4 rounded-3xl emless-glass border border-white/10 flex items-center justify-between">
+              <div>
+                <span class="text-[11px] text-white/50 block">Active Subscriptions</span>
+                <span class="text-xl font-bold text-white mono" id="subStatsActive">0 Active</span>
+              </div>
+              <div class="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-3xl emless-glass border border-white/10 flex items-center justify-between">
+              <div>
+                <span class="text-[11px] text-white/50 block">Supported Output Formats</span>
+                <span class="text-xs font-bold text-accent-gradient mono">Base64 / Plain / Raw</span>
+              </div>
+              <div class="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-3xl emless-glass border border-white/10 flex items-center justify-between">
+              <div>
+                <span class="text-[11px] text-white/50 block">Metadata Standards</span>
+                <span class="text-xs font-bold text-cyan-300 mono">Subscription-Userinfo</span>
+              </div>
+              <div class="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-cyan-400">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+            </div>
+          </div>
+
+          <!-- Subscription Cards Grid -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5" id="subscriptionsList">
+            <!-- Dynamic subscription items loaded via fetchSubscriptions() -->
+          </div>
+        </section>
+
+        <!-- ================= 6. VIEW: TRAFFIC ================= -->
+        <section id="view-traffic" class="hidden space-y-6">
+          <div>
+            <h2 class="text-2xl font-bold text-white">Traffic Analysis & Quotas</h2>
+            <p class="text-xs text-white/60">Per-user bandwidth consumption and protocol breakdown</p>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- User Quota Bars -->
+            <div class="lg:col-span-2 p-6 rounded-3xl emless-glass border border-white/10 space-y-4">
+              <h3 class="text-sm font-bold text-white">Client Data Consumption</h3>
+              <div class="space-y-4" id="trafficUserList">
+                <!-- Dynamic progress bars -->
+              </div>
+            </div>
+
+            <!-- Inbound Protocol Breakdown -->
+            <div class="p-6 rounded-3xl emless-glass border border-white/10 space-y-4">
+              <h3 class="text-sm font-bold text-white">Protocol Usage Summary</h3>
+              <div class="space-y-3" id="trafficInboundList">
+                <!-- Dynamic inbound summary items -->
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= 7. VIEW: TELEGRAM PROXY (SE7O-SNA ADAPTATION) ================= -->
+        <section id="view-telegram-proxy" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2">
+                <h2 class="text-2xl font-bold text-white">Telegram MTProto Proxy</h2>
+                <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">MTG Core</span>
+              </div>
+              <p class="text-xs text-white/60">Integrated high-performance MTProto proxy with Fake TLS 1.3 domain masking</p>
+            </div>
+
+            <!-- Proxy Action Buttons -->
+            <div class="flex items-center gap-2">
+              <button onclick="startTgProxy()" id="btnStartTg" class="px-3.5 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/></svg>
+                <span>Start</span>
+              </button>
+              <button onclick="stopTgProxy()" id="btnStopTg" class="px-3.5 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0zM9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z"/></svg>
+                <span>Stop</span>
+              </button>
+              <button onclick="restartTgProxy()" id="btnRestartTg" class="px-3.5 py-2 emless-glass hover:bg-white/10 border border-white/15 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors cursor-pointer">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                <span>Restart</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Left: Proxy Credentials & Instant Connect -->
+            <div class="lg:col-span-2 p-6 rounded-3xl emless-glass border border-white/10 space-y-6">
+              
+              <!-- Status & Quick Share Banner -->
+              <div class="p-4 rounded-2xl bg-white/5 border border-white/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-12 h-12 rounded-xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center text-sky-400">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>
+                  </div>
+                  <div>
+                    <div class="flex items-center gap-2">
+                      <h3 class="text-sm font-bold text-white">Proxy Status: <span id="tgStatusLabel" class="text-emerald-400 uppercase">RUNNING</span></h3>
+                    </div>
+                    <p class="text-xs text-white/60">Active Clients: <b class="text-white mono" id="tgActiveConn">48</b> | Port: <b class="text-accent-gradient mono" id="tgPortLabel">:8444</b></p>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <a id="tgDirectLink" href="#" target="_blank" class="px-4 py-2.5 btn-accent rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg">
+                    <span>Connect in Telegram</span>
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                  </a>
+                  <button onclick="showTgQrModal()" class="p-2.5 emless-glass hover:bg-white/10 rounded-xl border border-white/15 text-white" title="Show QR Code">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Raw Details & Copy -->
+              <div class="space-y-3">
+                <label class="block text-xs font-semibold text-white/70">tg:// Proxy URL (One-Click Link)</label>
+                <div class="flex items-center gap-2">
+                  <input type="text" id="tgUrlInput" readonly class="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white/90 text-xs mono">
+                  <button onclick="copyTgLink()" class="px-3.5 py-2.5 emless-glass hover:bg-white/10 rounded-xl text-xs font-semibold shrink-0 cursor-pointer">
+                    Copy URL
+                  </button>
+                </div>
+              </div>
+
+              <!-- Parameter Details Grid -->
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="p-3 rounded-2xl bg-black/30 border border-white/10 space-y-1">
+                  <span class="text-[10px] text-white/50 font-bold uppercase">Server Host</span>
+                  <p id="tgParamHost" class="text-xs font-semibold text-white mono truncate">185.190.140.22</p>
+                </div>
+                <div class="p-3 rounded-2xl bg-black/30 border border-white/10 space-y-1">
+                  <span class="text-[10px] text-white/50 font-bold uppercase">Port</span>
+                  <p id="tgParamPort" class="text-xs font-semibold text-accent-gradient mono">8444</p>
+                </div>
+                <div class="p-3 rounded-2xl bg-black/30 border border-white/10 space-y-1">
+                  <span class="text-[10px] text-white/50 font-bold uppercase">Protocol</span>
+                  <p class="text-xs font-semibold text-emerald-400 mono">Fake TLS 1.3</p>
+                </div>
+              </div>
+
+              <!-- Secret Key with Copy -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <label class="text-xs font-semibold text-white/70">Secret Key (Hex)</label>
+                  <button onclick="copyTgSecret()" class="text-xs text-accent-gradient font-bold hover:underline">Copy Secret</button>
+                </div>
+                <div class="p-3 rounded-xl bg-black/50 border border-white/10 font-mono text-[11px] text-white/80 break-all" id="tgSecretDisplay">
+                  ee000000000000000000000000000000017777772e7370656564746573742e6e6574
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Right: MTProto Configuration Settings -->
+            <div class="p-6 rounded-3xl emless-glass border border-white/10 space-y-4">
+              <h3 class="text-sm font-bold text-white flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+                MTProto Configuration
+              </h3>
+
+              <form id="tgConfigForm" class="space-y-3.5">
+                <div>
+                  <label class="block text-xs font-semibold text-white/70 mb-1.5">Listening Port</label>
+                  <input type="number" id="cfgTgPort" class="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono focus:outline-none focus:border-[#fd86db]/60">
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-white/70 mb-1.5">Fake TLS SNI (Domain)</label>
+                  <input type="text" id="cfgTgSni" value="www.speedtest.net" class="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono focus:outline-none focus:border-[#fd86db]/60">
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-white/70 mb-1.5">Promotion Tag (Optional Hex)</label>
+                  <input type="text" id="cfgTgTag" value="1665427189a0" class="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono focus:outline-none focus:border-[#fd86db]/60">
+                </div>
+
+                <div class="pt-2">
+                  <button type="button" onclick="generateNewFakeTlsSecret()" class="w-full py-2 emless-glass hover:bg-white/10 border border-white/15 rounded-xl text-xs font-bold text-accent-gradient transition-colors cursor-pointer">
+                    ⚡ Generate New Fake TLS Secret
+                  </button>
+                </div>
+
+                <button type="submit" class="w-full py-3 btn-accent rounded-xl text-xs font-bold shadow cursor-pointer mt-2">
+                  Save & Apply MTProto Config
+                </button>
+              </form>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ================= 8. VIEW: TRANSPORT (MODULAR OBFUSCATION) ================= -->
+        <section id="view-transport" class="hidden space-y-6">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <div class="flex items-center gap-2.5">
+                <h2 class="text-2xl font-bold text-white">Transport & Obfuscation Layer</h2>
+                <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 uppercase tracking-wide">MODULAR ARCHITECTURE</span>
+              </div>
+              <p class="text-xs text-white/60">Unified transport engine supporting native RVG authoritative protocols and modular Cloak WS obfuscation</p>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <button onclick="openConfigWizard(null, 'cloak_ws')" class="px-4 py-2.5 rounded-2xl emless-glass hover:bg-white/10 border border-cyan-500/30 text-cyan-300 text-xs font-bold flex items-center gap-2 shadow cursor-pointer transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                <span>Deploy Cloak WS Inbound</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Transport Architecture Overview Cards -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- 1. Standard RVG -->
+            <div class="p-6 rounded-3xl emless-glass border border-white/10 space-y-4 relative overflow-hidden">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                  </div>
+                  <div>
+                    <h3 class="text-base font-bold text-white">Standard RVG</h3>
+                    <p class="text-[11px] text-white/50">Native RVG Connection Architecture (Authoritative)</p>
+                  </div>
+                </div>
+                <span class="px-2.5 py-1 text-[10px] font-bold rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">AUTHORITATIVE</span>
+              </div>
+
+              <p class="text-xs text-white/70 leading-relaxed">
+                The primary high-performance proxy transport from the core RVG project. Direct raw socket handling with minimal overhead, native REALITY TLS camouflage, gRPC multiplexing, and standard WebSocket connections.
+              </p>
+
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+                <div class="p-3 rounded-2xl bg-black/40 border border-white/10">
+                  <span class="text-[10px] text-white/50 block">Active Inbounds</span>
+                  <span class="text-lg font-extrabold text-white mono" id="transportRvgInboundCount">0</span>
+                </div>
+                <div class="p-3 rounded-2xl bg-black/40 border border-white/10">
+                  <span class="text-[10px] text-white/50 block">Latency Baseline</span>
+                  <span class="text-lg font-extrabold text-emerald-400 mono">~12ms</span>
+                </div>
+                <div class="p-3 rounded-2xl bg-black/40 border border-white/10">
+                  <span class="text-[10px] text-white/50 block">Protocols</span>
+                  <span class="text-xs font-bold text-white mono">VLESS, Trojan, SS</span>
+                </div>
+              </div>
+
+              <div class="space-y-2 pt-2 border-t border-white/10 text-xs text-white/60">
+                <div class="flex items-center gap-2">
+                  <span class="text-emerald-400">✓</span>
+                  <span>Zero TLS handshake overhead with REALITY direct SNI sniffing</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-emerald-400">✓</span>
+                  <span>Direct gRPC multi-stream channels with adaptive buffer control</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-emerald-400">✓</span>
+                  <span>Shadowsocks-2022 AEAD cipher state protection</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- 2. Cloak WS -->
+            <div class="p-6 rounded-3xl emless-glass border border-cyan-500/20 bg-cyan-950/10 space-y-4 relative overflow-hidden">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-300 font-bold">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                  </div>
+                  <div>
+                    <h3 class="text-base font-bold text-cyan-200">Cloak WS</h3>
+                    <p class="text-[11px] text-white/50">WebSocket Obfuscation & Camouflage Layer</p>
+                  </div>
+                </div>
+                <span class="px-2.5 py-1 text-[10px] font-bold rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">MODULAR</span>
+              </div>
+
+              <p class="text-xs text-white/70 leading-relaxed">
+                Optional obfuscation transport discovered from the agent solution. Wraps payloads in synthetic HTTP/2 WebSocket handshakes with randomized path routing, custom browser TLS fingerprints, and 0-RTT early data.
+              </p>
+
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2">
+                <div class="p-3 rounded-2xl bg-black/40 border border-white/10">
+                  <span class="text-[10px] text-white/50 block">Active Inbounds</span>
+                  <span class="text-lg font-extrabold text-cyan-300 mono" id="transportCloakInboundCount">0</span>
+                </div>
+                <div class="p-3 rounded-2xl bg-black/40 border border-white/10">
+                  <span class="text-[10px] text-white/50 block">Early Data (0-RTT)</span>
+                  <span class="text-lg font-extrabold text-cyan-300 mono">2048 B</span>
+                </div>
+                <div class="p-3 rounded-2xl bg-black/40 border border-white/10">
+                  <span class="text-[10px] text-white/50 block">Fingerprints</span>
+                  <span class="text-xs font-bold text-cyan-300 mono">Chrome, Safari, FF</span>
+                </div>
+              </div>
+
+              <div class="space-y-2 pt-2 border-t border-white/10 text-xs text-white/60">
+                <div class="flex items-center gap-2">
+                  <span class="text-cyan-400">✓</span>
+                  <span>Synthetic WebSocket upgrade masking behind Cloudflare/CDN edges</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-cyan-400">✓</span>
+                  <span>Dynamic per-inbound randomized stream URI paths</span>
+                </div>
+                <div class="flex items-center gap-2">
+                  <span class="text-cyan-400">✓</span>
+                  <span>Automatic client URI generation with <code class="mono text-cyan-300">#CloakWS</code> parameter tagging</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Protocol & Transport Support Matrix -->
+          <div class="p-6 rounded-3xl emless-glass border border-white/10 space-y-4">
+            <h3 class="text-sm font-bold text-white">Transport Capability & Protocol Compatibility Matrix</h3>
+            
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs">
+                <thead>
+                  <tr class="border-b border-white/10 text-white/50 text-[11px] uppercase tracking-wider">
+                    <th class="py-3 px-4">Protocol</th>
+                    <th class="py-3 px-4">Standard RVG Support</th>
+                    <th class="py-3 px-4">Cloak WS Obfuscation</th>
+                    <th class="py-3 px-4">Early Data (0-RTT)</th>
+                    <th class="py-3 px-4">CDN / Proxy Safe</th>
+                    <th class="py-3 px-4 text-right">Recommended Use</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-white/5 font-medium">
+                  <tr class="hover:bg-white/5 transition-colors">
+                    <td class="py-3.5 px-4 font-bold text-white">VLESS + REALITY</td>
+                    <td class="py-3.5 px-4 text-emerald-400 font-semibold">✓ Native Direct (gRPC/TCP)</td>
+                    <td class="py-3.5 px-4 text-cyan-300 font-semibold">✓ Cloak Stream Wrapped</td>
+                    <td class="py-3.5 px-4 text-white/70">Optional (2048 B)</td>
+                    <td class="py-3.5 px-4"><span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px]">High</span></td>
+                    <td class="py-3.5 px-4 text-right text-white/70">Strict Censorship / General</td>
+                  </tr>
+                  <tr class="hover:bg-white/5 transition-colors">
+                    <td class="py-3.5 px-4 font-bold text-white">Trojan + XHTTP</td>
+                    <td class="py-3.5 px-4 text-emerald-400 font-semibold">✓ Native StreamUp / StreamOn</td>
+                    <td class="py-3.5 px-4 text-cyan-300 font-semibold">✓ Dual-Stream Obfuscation</td>
+                    <td class="py-3.5 px-4 text-white/70">Supported</td>
+                    <td class="py-3.5 px-4"><span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px]">Maximum</span></td>
+                    <td class="py-3.5 px-4 text-right text-white/70">Deep Packet Inspection (DPI)</td>
+                  </tr>
+                  <tr class="hover:bg-white/5 transition-colors">
+                    <td class="py-3.5 px-4 font-bold text-white">Trojan + WS / TLS</td>
+                    <td class="py-3.5 px-4 text-emerald-400 font-semibold">✓ Standard WebSockets</td>
+                    <td class="py-3.5 px-4 text-cyan-300 font-semibold">✓ Cloak WS Enhanced</td>
+                    <td class="py-3.5 px-4 text-white/70">Standard</td>
+                    <td class="py-3.5 px-4"><span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px]">High</span></td>
+                    <td class="py-3.5 px-4 text-right text-white/70">CDN Reverse Proxies</td>
+                  </tr>
+                  <tr class="hover:bg-white/5 transition-colors">
+                    <td class="py-3.5 px-4 font-bold text-white">Shadowsocks 2022</td>
+                    <td class="py-3.5 px-4 text-emerald-400 font-semibold">✓ AEAD Blake3 Direct</td>
+                    <td class="py-3.5 px-4 text-cyan-300 font-semibold">✓ WebSocket Tunnel</td>
+                    <td class="py-3.5 px-4 text-white/70">Supported</td>
+                    <td class="py-3.5 px-4"><span class="px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px]">Moderate</span></td>
+                    <td class="py-3.5 px-4 text-right text-white/70">Gaming & Low Overhead</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= 9. VIEW: SYSTEM & LOGS ================= -->
+        <section id="view-system" class="hidden space-y-6">
+          <div>
+            <h2 class="text-2xl font-bold text-white">System Diagnostics & Logs</h2>
+            <p class="text-xs text-white/60">Hardware telemetry, runtime environment, and real-time core log stream</p>
+          </div>
+
+          <!-- Hardware telemetry row -->
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="p-5 rounded-3xl emless-glass border border-white/10">
+              <span class="text-xs text-white/60 font-semibold">CPU Utilization</span>
+              <div class="mt-2 flex items-baseline gap-2">
+                <span class="text-2xl font-black text-white mono" id="sysCpuPct">14%</span>
+              </div>
+              <div class="mt-2 w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <div id="sysCpuBar" class="h-full bg-gradient-to-r from-[#ffc5dc] to-[#fd86db]" style="width: 14%"></div>
+              </div>
+            </div>
+
+            <div class="p-5 rounded-3xl emless-glass border border-white/10">
+              <span class="text-xs text-white/60 font-semibold">Memory Usage</span>
+              <div class="mt-2 flex items-baseline gap-2">
+                <span class="text-2xl font-black text-white mono" id="sysRamPct">38%</span>
+                <span class="text-xs text-white/50 mono" id="sysRamDetail">1.6 / 4.0 GB</span>
+              </div>
+              <div class="mt-2 w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                <div id="sysRamBar" class="h-full bg-gradient-to-r from-[#8b5cf6] to-[#6366f1]" style="width: 38%"></div>
+              </div>
+            </div>
+
+            <div class="p-5 rounded-3xl emless-glass border border-white/10">
+              <span class="text-xs text-white/60 font-semibold">Persistence Engine</span>
+              <div class="mt-2 flex items-baseline gap-2">
+                <span class="text-xl font-bold text-emerald-400" id="sysDbBadge">PostgreSQL / File</span>
+              </div>
+              <p class="text-[11px] text-white/50 mt-1">Survives Railway container restarts</p>
+            </div>
+          </div>
+
+          <!-- Live Log Console -->
+          <div class="p-6 rounded-3xl emless-glass border border-white/10 space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <h3 class="text-sm font-bold text-white">Live Event Log</h3>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="testPingLatency()" class="px-3 py-1.5 emless-glass hover:bg-white/10 rounded-xl text-xs font-semibold text-white/80 cursor-pointer">
+                  Test Gateway Ping
+                </button>
+                <button onclick="clearSystemLogs()" class="px-3 py-1.5 emless-glass hover:bg-white/10 rounded-xl text-xs font-semibold text-red-300 cursor-pointer">
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-2xl bg-black/60 border border-white/10 font-mono text-xs text-white/80 h-72 overflow-y-auto space-y-2" id="systemLogBox">
+              <!-- Logs loaded dynamically -->
+            </div>
+          </div>
+        </section>
+
+        <!-- ================= 9. VIEW: SETTINGS ================= -->
+        <section id="view-settings" class="hidden space-y-6">
+          <div>
+            <h2 class="text-2xl font-bold text-white">Settings & Deployment</h2>
+            <p class="text-xs text-white/60">Configure administrator credentials, network domains, TLS fragmentation, and backups</p>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Admin Credentials & Domain Form -->
+            <div class="p-6 rounded-3xl emless-glass border border-white/10 space-y-4">
+              <h3 class="text-sm font-bold text-white">Credentials & Domain</h3>
+
+              <form id="settingsGeneralForm" class="space-y-3.5">
+                <div>
+                  <label class="block text-xs font-semibold text-white/70 mb-1">Admin Username</label>
+                  <input type="text" id="setAdminUsername" class="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono">
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-white/70 mb-1">New Admin Password (Leave blank to keep unchanged)</label>
+                  <input type="password" id="setAdminPassword" placeholder="••••••••" class="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono">
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-white/70 mb-1">Server Public Domain (or Railway Domain)</label>
+                  <input type="text" id="setDomain" class="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono">
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-white/70 mb-1">Default Reality SNI</label>
+                  <input type="text" id="setSni" class="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono">
+                </div>
+
+                <button type="submit" class="w-full py-3 btn-accent rounded-xl text-xs font-bold shadow cursor-pointer mt-2">
+                  Save General Settings
+                </button>
+              </form>
+            </div>
+
+            <!-- Network & Transport Settings -->
+            <div class="p-6 rounded-3xl emless-glass border border-white/10 space-y-4">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-bold text-white">Network & Transport</h3>
+                <span class="px-2 py-0.5 text-[9px] font-bold rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 uppercase">MODULAR</span>
+              </div>
+              <p class="text-[11px] text-white/50">Configure default connection mode for new inbounds and obfuscation rules</p>
+
+              <form id="settingsTransportForm" class="space-y-3.5">
+                <div>
+                  <label class="block text-xs font-semibold text-white/70 mb-1.5">Default Transport for New Inbounds</label>
+                  <div class="space-y-2">
+                    <label class="flex items-start gap-2.5 p-2.5 rounded-xl border border-white/10 bg-black/30 hover:bg-white/5 cursor-pointer">
+                      <input type="radio" name="setDefaultTransport" value="standard" id="setTransportStandard" class="mt-0.5 text-accent focus:ring-0">
+                      <div>
+                        <span class="text-xs font-bold text-white block">Standard RVG (Authoritative)</span>
+                        <span class="text-[10px] text-white/50">Native RVG connection behavior.</span>
+                      </div>
+                    </label>
+                    <label class="flex items-start gap-2.5 p-2.5 rounded-xl border border-white/10 bg-black/30 hover:bg-white/5 cursor-pointer">
+                      <input type="radio" name="setDefaultTransport" value="cloak_ws" id="setTransportCloakWs" class="mt-0.5 text-accent focus:ring-0">
+                      <div>
+                        <span class="text-xs font-bold text-cyan-300 block">Cloak WS (Optional Layer)</span>
+                        <span class="text-[10px] text-white/50">WebSocket-based early-data obfuscation layer.</span>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-white/70 mb-1">Cloak WS Default Masking SNI</label>
+                  <input type="text" id="setCloakMaskSni" placeholder="www.cloudflare.com" class="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono">
+                </div>
+
+                <div class="p-3 rounded-2xl bg-white/5 border border-white/10 text-[11px] text-white/60">
+                  Changing default transport only applies to <b>new configurations</b>. Existing inbounds continue using their designated transport.
+                </div>
+
+                <button type="submit" class="w-full py-3 btn-accent rounded-xl text-xs font-bold shadow cursor-pointer mt-2">
+                  Save Transport Policy
+                </button>
+              </form>
+            </div>
+
+            <!-- Anti-Censorship & Clean IPs -->
+            <div class="p-6 rounded-3xl emless-glass border border-white/10 space-y-4">
+              <h3 class="text-sm font-bold text-white">TLS Fragment & Backups</h3>
+
+              <form id="settingsAntiFilterForm" class="space-y-3.5">
+                <div class="grid grid-cols-2 gap-3">
+                  <div>
+                    <label class="block text-xs font-semibold text-white/70 mb-1">Fragment Length</label>
+                    <input type="text" id="setFragLen" value="100-200" class="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono">
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-white/70 mb-1">Fragment Interval</label>
+                    <input type="text" id="setFragInt" value="10-20" class="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono">
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-semibold text-white/70 mb-1">Cloudflare Clean IPs</label>
+                  <textarea id="setCleanIps" rows="2" class="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono"></textarea>
+                </div>
+
+                <div class="pt-2 border-t border-white/10 flex items-center justify-between gap-3">
+                  <button type="button" onclick="downloadBackupJson()" class="w-1/2 py-2.5 emless-glass hover:bg-white/10 border border-white/15 rounded-xl text-xs font-semibold text-white cursor-pointer">
+                    Export JSON
+                  </button>
+                  <label class="w-1/2 py-2.5 emless-glass hover:bg-white/10 border border-white/15 rounded-xl text-xs font-semibold text-accent-gradient text-center cursor-pointer">
+                    Import Backup
+                    <input type="file" id="restoreFileInput" class="hidden" accept=".json" onchange="uploadRestoreJson(event)">
+                  </label>
+                </div>
+              </form>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ================= MODALS ================= -->
+
+  <!-- Modal: Add Client -->
+  <div id="modalAddClient" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+    <div class="w-full max-w-md emless-glass-elevated rounded-3xl p-6 relative">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-base font-bold text-white">Create New Client Account</h3>
+        <button onclick="closeModals()" class="text-white/50 hover:text-white text-xl">✕</button>
+      </div>
+
+      <form id="formAddClient" class="space-y-3.5">
+        <div>
+          <label class="block text-xs font-semibold text-white/70 mb-1">Client Tag / Email</label>
+          <input type="text" id="newClientEmail" placeholder="user@emless.network" required class="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white text-xs">
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-white/70 mb-1">Traffic Quota (GB)</label>
+            <input type="number" id="newClientQuota" value="50" min="1" class="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-white/70 mb-1">Validity (Days)</label>
+            <input type="number" id="newClientExpiry" value="30" min="1" class="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono">
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-3 btn-accent rounded-xl text-xs font-bold shadow cursor-pointer mt-2">
+          Generate Client Credentials
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: 7-Step Configuration Creation Wizard -->
+  <div id="modalConfigWizard" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+    <div class="w-full max-w-xl emless-glass-elevated rounded-3xl p-5 sm:p-7 relative max-h-[92vh] flex flex-col justify-between overflow-hidden shadow-2xl border border-white/15">
+      
+      <!-- Wizard Header -->
+      <div class="pb-4 border-b border-white/10 shrink-0">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-accent-gradient animate-pulse"></span>
+            <h3 class="text-base sm:text-lg font-bold text-white tracking-tight" id="wizardTitle">Configuration Wizard</h3>
+          </div>
+          <button onclick="closeModals()" class="p-1.5 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-colors text-lg">✕</button>
+        </div>
+
+        <!-- 7-Step Visual Progress Stepper -->
+        <div class="flex items-center justify-between gap-1 sm:gap-1.5">
+          <button type="button" onclick="wizardJumpTo(1)" id="stepDot-1" class="wizard-step-pill flex-1 py-1 px-1 rounded-lg bg-accent-gradient text-[10px] font-extrabold text-black text-center transition-all">1. User</button>
+          <button type="button" onclick="wizardJumpTo(2)" id="stepDot-2" class="wizard-step-pill flex-1 py-1 px-1 rounded-lg bg-white/10 text-[10px] font-bold text-white/50 text-center transition-all">2. Proto</button>
+          <button type="button" onclick="wizardJumpTo(3)" id="stepDot-3" class="wizard-step-pill flex-1 py-1 px-1 rounded-lg bg-white/10 text-[10px] font-bold text-white/50 text-center transition-all">3. Mode</button>
+          <button type="button" onclick="wizardJumpTo(4)" id="stepDot-4" class="wizard-step-pill flex-1 py-1 px-1 rounded-lg bg-white/10 text-[10px] font-bold text-white/50 text-center transition-all">4. Port</button>
+          <button type="button" onclick="wizardJumpTo(5)" id="stepDot-5" class="wizard-step-pill flex-1 py-1 px-1 rounded-lg bg-white/10 text-[10px] font-bold text-white/50 text-center transition-all">5. Opts</button>
+          <button type="button" onclick="wizardJumpTo(6)" id="stepDot-6" class="wizard-step-pill flex-1 py-1 px-1 rounded-lg bg-white/10 text-[10px] font-bold text-white/50 text-center transition-all">6. Review</button>
+          <button type="button" onclick="wizardJumpTo(7)" id="stepDot-7" class="wizard-step-pill flex-1 py-1 px-1 rounded-lg bg-white/10 text-[10px] font-bold text-white/50 text-center transition-all">7. Ready</button>
+        </div>
+      </div>
+
+      <!-- Wizard Scrollable Body Content -->
+      <form id="wizardForm" onsubmit="handleWizardSubmit(event)" class="flex-1 overflow-y-auto py-4 space-y-4 pr-1">
+        
+        <!-- STEP 1: Select Target Client -->
+        <div id="wizardStep-1" class="wizard-step-pane space-y-4">
+          <div>
+            <span class="text-xs font-bold text-accent-gradient uppercase tracking-wider">Step 1 of 7</span>
+            <h4 class="text-base font-bold text-white">Select Target Client</h4>
+            <p class="text-xs text-white/60">Choose which client profile will receive and authenticate this configuration.</p>
+          </div>
+
+          <div class="space-y-2">
+            <label class="block text-xs font-semibold text-white/70">Client Account</label>
+            <select id="wizClientId" class="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white text-xs">
+              <option value="all">⚡ Global (All Active Clients)</option>
+            </select>
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-xs text-white/70 flex items-start gap-2.5">
+            <svg class="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span>Selecting Global automatically includes this configuration in every client's subscription feed and QR codes.</span>
+          </div>
+        </div>
+
+        <!-- STEP 2: Protocol Selection -->
+        <div id="wizardStep-2" class="wizard-step-pane hidden space-y-4">
+          <div>
+            <span class="text-xs font-bold text-accent-gradient uppercase tracking-wider">Step 2 of 7</span>
+            <h4 class="text-base font-bold text-white">Select Protocol Architecture</h4>
+            <p class="text-xs text-white/60">Choose the authoritative tunnel protocol implemented by the core kernel.</p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <label class="p-3.5 rounded-2xl border border-white/20 bg-white/10 hover:bg-white/15 cursor-pointer transition-all flex flex-col justify-between" id="cardProtoVless">
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="text-xs font-bold text-white">VLESS</span>
+                  <input type="radio" name="wizProto" value="vless" checked onchange="wizardSelectProto('vless')" class="text-accent focus:ring-0">
+                </div>
+                <p class="text-[10px] text-white/60">Stateless, lightweight, zero overhead with REALITY TLS.</p>
+              </div>
+              <span class="mt-2 text-[9px] font-bold text-emerald-400 mono">RECOMMENDED</span>
+            </label>
+
+            <label class="p-3.5 rounded-2xl border border-white/10 bg-black/30 hover:bg-white/5 cursor-pointer transition-all flex flex-col justify-between" id="cardProtoTrojan">
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="text-xs font-bold text-white">Trojan</span>
+                  <input type="radio" name="wizProto" value="trojan" onchange="wizardSelectProto('trojan')" class="text-accent focus:ring-0">
+                </div>
+                <p class="text-[10px] text-white/60">Authentic HTTPS masquerading with XHTTP support.</p>
+              </div>
+              <span class="mt-2 text-[9px] font-bold text-cyan-300 mono">HIGH CAMOUFLAGE</span>
+            </label>
+
+            <label class="p-3.5 rounded-2xl border border-white/10 bg-black/30 hover:bg-white/5 cursor-pointer transition-all flex flex-col justify-between" id="cardProtoSs">
+              <div>
+                <div class="flex items-center justify-between mb-1.5">
+                  <span class="text-xs font-bold text-white">Shadowsocks</span>
+                  <input type="radio" name="wizProto" value="shadowsocks" onchange="wizardSelectProto('shadowsocks')" class="text-accent focus:ring-0">
+                </div>
+                <p class="text-[10px] text-white/60">AEAD 2022 encryption cipher suite.</p>
+              </div>
+              <span class="mt-2 text-[9px] font-bold text-purple-300 mono">ULTRA FAST</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- STEP 3: Transport Mode Selection -->
+        <div id="wizardStep-3" class="wizard-step-pane hidden space-y-4">
+          <div>
+            <span class="text-xs font-bold text-accent-gradient uppercase tracking-wider">Step 3 of 7</span>
+            <h4 class="text-base font-bold text-white">Connection Mode & Transport Layer</h4>
+            <p class="text-xs text-white/60">Select between native authoritative RVG transport or modular Cloak WS obfuscation.</p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <label class="p-4 rounded-2xl border border-white/20 bg-white/10 cursor-pointer transition-all flex flex-col justify-between" id="wizCardModeStandard">
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-white flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    Standard RVG
+                  </span>
+                  <input type="radio" name="wizTransportMode" value="standard" checked onchange="wizardSelectMode('standard')" class="text-accent focus:ring-0">
+                </div>
+                <p class="text-[11px] text-white/70">Native RVG connection behavior. Authoritative core transport with direct gRPC, TCP, or WebSocket.</p>
+              </div>
+              <div class="pt-2 text-[10px] text-emerald-400 mono font-semibold">Native Engine · Baseline Latency</div>
+            </label>
+
+            <label class="p-4 rounded-2xl border border-cyan-500/20 bg-cyan-950/20 cursor-pointer transition-all flex flex-col justify-between" id="wizCardModeCloak">
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+                    Cloak WS
+                  </span>
+                  <input type="radio" name="wizTransportMode" value="cloak_ws" onchange="wizardSelectMode('cloak_ws')" class="text-accent focus:ring-0">
+                </div>
+                <p class="text-[11px] text-white/70">Optional WebSocket-based obfuscation/transport layer with 0-RTT EarlyData and TLS browser masquerade.</p>
+              </div>
+              <div class="pt-2 text-[10px] text-cyan-300 mono font-semibold">Modular Obfuscation · Anti-DPI</div>
+            </label>
+          </div>
+        </div>
+
+        <!-- STEP 4: Server / Port / Name -->
+        <div id="wizardStep-4" class="wizard-step-pane hidden space-y-4">
+          <div>
+            <span class="text-xs font-bold text-accent-gradient uppercase tracking-wider">Step 4 of 7</span>
+            <h4 class="text-base font-bold text-white">Inbound Endpoint & Port</h4>
+            <p class="text-xs text-white/60">Specify the configuration descriptor and network port.</p>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-white/70 mb-1">Configuration Name / Tag</label>
+            <input type="text" id="wizInbName" value="VLESS REALITY Multi-Stream" required class="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white text-xs">
+          </div>
+
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-semibold text-white/70 mb-1">Listening Port</label>
+              <input type="number" id="wizInbPort" value="8443" min="1" max="65535" required class="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-white/70 mb-1">Server Host / Domain</label>
+              <input type="text" id="wizInbHost" value="railway.app" readonly class="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-white/70 text-xs mono">
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 5: Advanced Options (Transport, Security, Camouflage) -->
+        <div id="wizardStep-5" class="wizard-step-pane hidden space-y-4">
+          <div>
+            <span class="text-xs font-bold text-accent-gradient uppercase tracking-wider">Step 5 of 7</span>
+            <h4 class="text-base font-bold text-white">Advanced Parameters & Camouflage</h4>
+            <p class="text-xs text-white/60">Configure underlying transport framing, TLS camouflage, and obfuscation parameters.</p>
+          </div>
+
+          <!-- Standard Mode Options -->
+          <div id="wizStandardOptions" class="space-y-3">
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-white/70 mb-1">Stream Transport</label>
+                <select id="wizStreamTransport" class="w-full px-3.5 py-2 bg-black/40 border border-white/10 rounded-xl text-white text-xs">
+                  <option value="grpc">gRPC (Multi-channel)</option>
+                  <option value="ws">WebSocket</option>
+                  <option value="xhttp">XHTTP (Dual-stream)</option>
+                  <option value="tcp">Raw TCP</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-white/70 mb-1">Security Camouflage</label>
+                <select id="wizStreamSecurity" class="w-full px-3.5 py-2 bg-black/40 border border-white/10 rounded-xl text-white text-xs">
+                  <option value="reality">REALITY (Dest Sniffing)</option>
+                  <option value="tls">Standard TLS 1.3</option>
+                  <option value="none">None (Plain)</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-white/70 mb-1">Stream Path / Service Name</label>
+                <input type="text" id="wizStreamPath" value="/emless-grpc" placeholder="/stream-path or grpc-service" class="w-full px-3.5 py-2 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-white/70 mb-1">Server SNI / Dest Camouflage</label>
+                <input type="text" id="wizStreamSni" value="www.speedtest.net" placeholder="www.speedtest.net" class="w-full px-3.5 py-2 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono">
+              </div>
+            </div>
+          </div>
+
+          <!-- Cloak WS Mode Options -->
+          <div id="wizCloakOptions" class="hidden space-y-3 p-3.5 rounded-2xl bg-cyan-950/20 border border-cyan-500/20">
+            <div class="text-xs font-bold text-cyan-300 flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+              <span>Cloak WS Parameters</span>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-white/70 mb-1">Cloak WS Stream Path</label>
+              <input type="text" id="wizCloakPath" value="/cloak-ws-stream" class="w-full px-3.5 py-2 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-white/70 mb-1">Masking SNI</label>
+                <input type="text" id="wizCloakMaskSni" value="www.cloudflare.com" class="w-full px-3.5 py-2 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-white/70 mb-1">0-RTT Early Data</label>
+                <input type="text" id="wizCloakEarlyData" value="2048" class="w-full px-3.5 py-2 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-white/70 mb-1">Browser Masquerade</label>
+                <select id="wizCloakFp" class="w-full px-3.5 py-2 bg-black/40 border border-white/10 rounded-xl text-white text-xs">
+                  <option value="chrome">Chrome (TLS 1.3)</option>
+                  <option value="safari">Safari (iOS)</option>
+                  <option value="firefox">Firefox</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-white/70 mb-1">ALPN Protocol</label>
+                <input type="text" id="wizCloakAlpn" value="h2,http/1.1" class="w-full px-3.5 py-2 bg-black/40 border border-white/10 rounded-xl text-white text-xs mono">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 6: Review Summary -->
+        <div id="wizardStep-6" class="wizard-step-pane hidden space-y-4">
+          <div>
+            <span class="text-xs font-bold text-accent-gradient uppercase tracking-wider">Step 6 of 7</span>
+            <h4 class="text-base font-bold text-white">Review Configuration Summary</h4>
+            <p class="text-xs text-white/60">Confirm the parameters before deploying to the kernel.</p>
+          </div>
+
+          <div id="wizErrorBox" class="hidden p-3.5 rounded-2xl bg-red-500/10 border border-red-500/30 text-xs text-red-300 flex items-start gap-2.5">
+            <svg class="w-4 h-4 text-red-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span id="wizErrorText">Validation error</span>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-black/50 border border-white/10 space-y-3 text-xs">
+            <div class="flex items-center justify-between pb-2 border-b border-white/10">
+              <span class="text-white/60">Configuration Name:</span>
+              <span class="font-bold text-white" id="revInbName">VLESS REALITY</span>
+            </div>
+            <div class="flex items-center justify-between pb-2 border-b border-white/10">
+              <span class="text-white/60">Protocol:</span>
+              <span class="font-bold text-accent-gradient mono uppercase" id="revProto">VLESS</span>
+            </div>
+            <div class="flex items-center justify-between pb-2 border-b border-white/10">
+              <span class="text-white/60">Transport Mode:</span>
+              <span class="font-bold text-white" id="revMode">Standard RVG</span>
+            </div>
+            <div class="flex items-center justify-between pb-2 border-b border-white/10">
+              <span class="text-white/60">Network Endpoint:</span>
+              <span class="font-bold text-white mono" id="revEndpoint">railway.app:8443</span>
+            </div>
+            <div class="flex items-center justify-between pb-2 border-b border-white/10">
+              <span class="text-white/60">Camouflage / Security:</span>
+              <span class="font-bold text-emerald-400 mono" id="revSecurity">REALITY</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <span class="text-white/60">Target Client(s):</span>
+              <span class="font-bold text-white" id="revClient">All Active Clients</span>
+            </div>
+          </div>
+
+          <div class="p-3.5 rounded-2xl bg-white/5 border border-white/10 text-[11px] text-white/60 flex items-start gap-2">
+            <svg class="w-4 h-4 text-emerald-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+            <span>Submitting will atomically validate parameters, deploy listener to kernel runtime, and activate client subscriptions.</span>
+          </div>
+        </div>
+
+        <!-- STEP 7: Ready / Success -->
+        <div id="wizardStep-7" class="wizard-step-pane hidden space-y-4 text-center">
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 mx-auto">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          </div>
+
+          <div>
+            <h4 class="text-base font-bold text-white">Inbound Deployed & Ready!</h4>
+            <p class="text-xs text-white/60">Configuration is live and listening on the designated port.</p>
+          </div>
+
+          <div class="flex justify-center p-3 bg-white rounded-2xl w-fit mx-auto shadow-xl" id="wizQrCanvas"></div>
+
+          <div class="text-left space-y-1.5">
+            <label class="text-xs font-semibold text-white/70">Authoritative URI Link</label>
+            <textarea id="wizResultPayload" rows="2" readonly class="w-full px-3 py-2 bg-black/60 border border-white/10 rounded-xl text-white/90 font-mono text-[10px]"></textarea>
+          </div>
+        </div>
+
+      </form>
+
+      <!-- Wizard Navigation Footer Buttons -->
+      <div class="pt-4 border-t border-white/10 flex items-center justify-between gap-3 shrink-0">
+        <button type="button" id="wizBtnPrev" onclick="wizardPrev()" class="hidden px-4 py-2.5 emless-glass hover:bg-white/10 border border-white/15 rounded-xl text-xs font-semibold text-white transition-colors cursor-pointer">
+          ← Previous
+        </button>
+        <div class="flex-1"></div>
+        <button type="button" id="wizBtnNext" onclick="wizardNext()" class="px-5 py-2.5 btn-accent rounded-xl text-xs font-bold shadow transition-all cursor-pointer">
+          Next Step →
+        </button>
+        <button type="button" id="wizBtnSubmit" onclick="wizardSubmit()" class="hidden px-6 py-2.5 btn-accent rounded-xl text-xs font-bold shadow transition-all cursor-pointer">
+          ⚡ Deploy Configuration
+        </button>
+        <button type="button" id="wizBtnDone" onclick="closeModals()" class="hidden px-6 py-2.5 emless-glass hover:bg-white/10 border border-white/20 rounded-xl text-xs font-bold text-white transition-all cursor-pointer">
+          Done
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal: Subscription & QR Inspector Modal -->
+  <div id="modalQr" class="hidden fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
+    <div class="w-full max-w-xl emless-glass-elevated rounded-3xl p-5 sm:p-7 relative shadow-2xl border border-white/15 max-h-[92vh] flex flex-col justify-between overflow-hidden">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-white/10 shrink-0">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-xl bg-accent-gradient flex items-center justify-center text-white font-bold text-xs">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white" id="modalQrTitle">Subscription & QR Inspector</h3>
+            <p class="text-[11px] text-white/50" id="modalQrSubtitle">V2Ray-compatible client configuration payload</p>
+          </div>
+        </div>
+        <button onclick="closeModals()" class="p-1.5 rounded-xl text-white/50 hover:text-white hover:bg-white/10 transition-colors text-lg cursor-pointer">✕</button>
+      </div>
+
+      <div class="space-y-4 py-3 overflow-y-auto flex-1">
+        <!-- Interactive Format Switcher Tabs -->
+        <div class="flex items-center gap-1.5 p-1 bg-black/40 border border-white/10 rounded-2xl">
+          <button type="button" onclick="switchInspectorFormat('standard')" id="btnInspFmtStandard" class="flex-1 py-1.5 px-2 rounded-xl text-[11px] font-bold text-white bg-white/15 shadow transition-all cursor-pointer">
+            Standard Sub URL
+          </button>
+          <button type="button" onclick="switchInspectorFormat('base64url')" id="btnInspFmtBase64Url" class="flex-1 py-1.5 px-2 rounded-xl text-[11px] font-semibold text-white/60 hover:text-white transition-all cursor-pointer">
+            Base64 Sub URL
+          </button>
+          <button type="button" onclick="switchInspectorFormat('plain')" id="btnInspFmtPlain" class="flex-1 py-1.5 px-2 rounded-xl text-[11px] font-semibold text-white/60 hover:text-white transition-all cursor-pointer">
+            Plain URIs
+          </button>
+          <button type="button" onclick="switchInspectorFormat('base64payload')" id="btnInspFmtBase64Payload" class="flex-1 py-1.5 px-2 rounded-xl text-[11px] font-semibold text-white/60 hover:text-white transition-all cursor-pointer">
+            Base64 Payload
+          </button>
+        </div>
+
+        <!-- QR Canvas (Rendered directly from the active subscription endpoint) -->
+        <div class="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/5 border border-white/10">
+          <div class="p-3.5 bg-white rounded-2xl shadow-2xl" id="qrcodeCanvas"></div>
+          <span class="text-[11px] text-white/50 mt-2.5 flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+            <span id="qrFormatNotice">QR encodes active subscription URL for instant client import</span>
+          </span>
+        </div>
+
+        <!-- Real V2Ray Subscription-Userinfo Header Preview -->
+        <div class="p-3.5 rounded-2xl bg-black/40 border border-white/10 space-y-1.5 text-xs">
+          <div class="flex items-center justify-between text-[11px]">
+            <span class="font-bold text-white/60 uppercase tracking-wider">Subscription-Userinfo Header</span>
+            <span class="text-emerald-400 font-mono text-[10px]" id="modalQrStatusBadge">ACTIVE</span>
+          </div>
+          <div class="p-2 rounded-xl bg-black/60 font-mono text-[10px] text-accent-gradient break-all select-all" id="modalQrUserinfo">
+            upload=0; download=0; total=53687091200; expire=1787123456
+          </div>
+        </div>
+
+        <!-- Raw Active Content Box -->
+        <div class="space-y-1.5 text-left">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-semibold text-white/70" id="modalQrPayloadLabel">Active Subscription Endpoint</label>
+            <span class="text-[10px] text-white/40 mono" id="modalQrCountBadge">0 inbounds embedded</span>
+          </div>
+          <textarea id="modalQrPayload" rows="3" readonly class="w-full px-3.5 py-2.5 bg-black/60 border border-white/10 rounded-xl text-white/90 font-mono text-[11px] focus:ring-1 focus:ring-[#fd86db] outline-none select-all"></textarea>
+        </div>
+      </div>
+
+      <!-- Action Buttons Footer -->
+      <div class="pt-3 border-t border-white/10 flex items-center justify-between gap-3 shrink-0">
+        <a id="btnOpenSubLink" href="#" target="_blank" class="px-4 py-2.5 emless-glass hover:bg-white/10 border border-white/15 rounded-xl text-xs font-bold text-white flex items-center gap-2 transition-colors cursor-pointer">
+          <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+          <span>Open Endpoint</span>
+        </a>
+        <button type="button" onclick="copyModalQrPayload()" class="px-6 py-2.5 btn-accent rounded-xl text-xs font-bold flex items-center gap-2 shadow cursor-pointer transition-transform hover:scale-105">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+          <span>Copy Content</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+
+  <!-- ================= LOGIC & SCRIPT ================= -->
+  <script>
+    // Global State
+    let currentTab = 'dashboard';
+    let appState = {
+      stats: null,
+      inbounds: [],
+      clients: [],
+      telegramProxy: null,
+      logs: []
+    };
+    let trafficChartInstance = null;
+
+    // Ambient Canvas Background Effect (Desktop only, respects prefers-reduced-motion)
+    (function initAmbientBackground() {
+      const canvas = document.getElementById('ambientCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      let width, height;
+
+      function resize() {
+        width = canvas.width = window.innerWidth;
+        height = canvas.height = window.innerHeight;
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      let t = 0;
+      function render() {
+        t += 0.005;
+        ctx.clearRect(0, 0, width, height);
+
+        // Organic morph gradient blobs
+        const cx1 = width * 0.3 + Math.sin(t * 0.7) * 120;
+        const cy1 = height * 0.3 + Math.cos(t * 0.9) * 100;
+        const grad1 = ctx.createRadialGradient(cx1, cy1, 10, cx1, cy1, width * 0.45);
+        grad1.addColorStop(0, 'rgba(253, 134, 219, 0.12)');
+        grad1.addColorStop(1, 'rgba(22, 22, 22, 0)');
+        ctx.fillStyle = grad1;
+        ctx.fillRect(0, 0, width, height);
+
+        const cx2 = width * 0.75 + Math.cos(t * 0.6) * 140;
+        const cy2 = height * 0.7 + Math.sin(t * 0.8) * 120;
+        const grad2 = ctx.createRadialGradient(cx2, cy2, 10, cx2, cy2, width * 0.4);
+        grad2.addColorStop(0, 'rgba(139, 92, 246, 0.10)');
+        grad2.addColorStop(1, 'rgba(22, 22, 22, 0)');
+        ctx.fillStyle = grad2;
+        ctx.fillRect(0, 0, width, height);
+
+        if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+          requestAnimationFrame(render);
+        }
+      }
+      render();
+    })();
+
+    // Tab Navigation
+    function switchTab(tabId) {
+      currentTab = tabId;
+      const tabs = ['dashboard', 'connections', 'configurations', 'clients', 'subscriptions', 'traffic', 'telegram-proxy', 'system', 'settings'];
+
+      tabs.forEach(t => {
+        const viewEl = document.getElementById(`view-${t}`);
+        const btnEl = document.getElementById(`tab-${t}`);
+        if (viewEl) viewEl.classList.toggle('hidden', t !== tabId);
+        if (btnEl) btnEl.classList.toggle('nav-active', t === tabId);
+      });
+
+      refreshCurrentView();
+    }
+
+    // Auth & Session Check
+    async function checkAuthSession() {
+      try {
+        const res = await fetch('/api/auth/session');
+        const data = await res.json();
+        if (data.authenticated) {
+          document.getElementById('authView').classList.add('hidden');
+          document.getElementById('appContainer').classList.remove('hidden');
+          initDashboard();
+        } else {
+          document.getElementById('authView').classList.remove('hidden');
+          document.getElementById('appContainer').classList.add('hidden');
+        }
+      } catch (e) {
+        document.getElementById('authView').classList.remove('hidden');
+      }
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const username = document.getElementById('loginUsername').value;
+      const password = document.getElementById('loginPassword').value;
+      const btn = document.getElementById('loginBtn');
+      const errBox = document.getElementById('loginError');
+
+      btn.disabled = true;
+      btn.innerText = 'Verifying credentials...';
+      errBox.classList.add('hidden');
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('authView').classList.add('hidden');
+          document.getElementById('appContainer').classList.remove('hidden');
+          initDashboard();
+        } else {
+          errBox.innerText = data.error || 'Authentication failed';
+          errBox.classList.remove('hidden');
+        }
+      } catch (err) {
+        errBox.innerText = 'Connection error to EMLESS server';
+        errBox.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.innerText = 'Authenticate Session';
+      }
+    });
+
+    async function logout() {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      location.reload();
+    }
+
+    // Data Loaders
+    async function initDashboard() {
+      await fetchDashboardData();
+      setInterval(fetchDashboardData, 3000);
+      setupTrafficChart();
+    }
+
+    function refreshCurrentView() {
+      if (currentTab === 'dashboard') fetchDashboardData();
+      else if (currentTab === 'connections') fetchConnections();
+      else if (currentTab === 'configurations') fetchConfigurations();
+      else if (currentTab === 'clients') fetchClients();
+      else if (currentTab === 'subscriptions') fetchSubscriptions();
+      else if (currentTab === 'traffic') fetchTraffic();
+      else if (currentTab === 'telegram-proxy') fetchTelegramProxy();
+      else if (currentTab === 'system') fetchSystem();
+      else if (currentTab === 'settings') fetchSettings();
+    }
+
+    async function fetchDashboardData() {
+      try {
+        const res = await fetch('/api/dashboard');
+        if (!res.ok) return;
+        const data = await res.json();
+        appState = data;
+
+        const stats = data.stats;
+        document.getElementById('dashConnections').innerText = stats.counts.activeConnections;
+        document.getElementById('dashCoreConn').innerText = stats.counts.activeConnections - (stats.telegramProxy.connections || 0);
+        document.getElementById('dashTgConn').innerText = stats.telegramProxy.connections || 0;
+        
+        document.getElementById('dashTotalTraffic').innerText = stats.totalTraffic.totalTB;
+        document.getElementById('dashUploadTotal').innerText = `${stats.totalTraffic.uploadGB} GB`;
+        document.getElementById('dashDownloadTotal').innerText = `${stats.totalTraffic.downloadGB} GB`;
+
+        document.getElementById('dashActiveClients').innerText = stats.counts.activeClients;
+        document.getElementById('dashTotalClients').innerText = stats.counts.totalClients;
+        document.getElementById('dashActiveInbounds').innerText = stats.counts.activeConfigurations;
+        document.getElementById('dashUptime').innerText = stats.uptimeFormatted;
+
+        document.getElementById('headerUpSpeed').innerText = stats.liveBandwidth.uploadMBs;
+        document.getElementById('headerDownSpeed').innerText = stats.liveBandwidth.downloadMBs;
+
+        document.getElementById('sideDomain').innerText = stats.domain || stats.serverIp;
+        document.getElementById('sideUptime').innerText = stats.uptimeFormatted;
+
+        // MTProto Header badge
+        document.getElementById('dashTgPortText').innerText = `:${stats.telegramProxy.port}`;
+        document.getElementById('dashTgBadge').innerText = stats.telegramProxy.status.toUpperCase();
+        document.getElementById('dashTgBadge').className = stats.telegramProxy.status === 'running' 
+          ? 'px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+          : 'px-2 py-0.5 text-[10px] font-bold rounded-full bg-red-500/10 text-red-400 border border-red-500/20';
+
+        document.getElementById('headerTgPort').innerText = `:${stats.telegramProxy.port}`;
+        document.getElementById('headerTgDot').className = stats.telegramProxy.status === 'running'
+          ? 'w-2 h-2 rounded-full bg-emerald-400'
+          : 'w-2 h-2 rounded-full bg-red-400';
+
+        // Render Inbounds in Dashboard
+        const inbContainer = document.getElementById('dashInboundsList');
+        if (inbContainer) {
+          inbContainer.innerHTML = data.inbounds.map(i => `
+            <div class="p-3 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2.5">
+                <span class="w-2 h-2 rounded-full ${i.enabled ? 'bg-emerald-400' : 'bg-white/20'}"></span>
+                <div>
+                  <div class="font-bold text-white">${i.name}</div>
+                  <div class="text-[10px] text-white/50 uppercase mono">${i.protocol} · ${i.transport} · Port ${i.port}</div>
+                </div>
+              </div>
+              <span class="mono text-white/70">${i.totalTraffic}</span>
+            </div>
+          `).join('');
+        }
+
+        // Update Chart
+        if (trafficChartInstance && stats.liveBandwidth.history) {
+          const labels = stats.liveBandwidth.history.map(h => h.time);
+          const upData = stats.liveBandwidth.history.map(h => h.upload);
+          const downData = stats.liveBandwidth.history.map(h => h.download);
+
+          trafficChartInstance.data.labels = labels;
+          trafficChartInstance.data.datasets[0].data = upData;
+          trafficChartInstance.data.datasets[1].data = downData;
+          trafficChartInstance.update('none');
+        }
+
+      } catch (e) {
+        console.error("Dashboard fetch error:", e);
+      }
+    }
+
+    function setupTrafficChart() {
+      const ctx = document.getElementById('dashTrafficChart')?.getContext('2d');
+      if (!ctx) return;
+
+      const gradUp = ctx.createLinearGradient(0, 0, 0, 200);
+      gradUp.addColorStop(0, 'rgba(52, 211, 153, 0.3)');
+      gradUp.addColorStop(1, 'rgba(52, 211, 153, 0)');
+
+      const gradDown = ctx.createLinearGradient(0, 0, 0, 200);
+      gradDown.addColorStop(0, 'rgba(6, 182, 212, 0.3)');
+      gradDown.addColorStop(1, 'rgba(6, 182, 212, 0)');
+
+      trafficChartInstance = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: 'Upload (MB/s)',
+              borderColor: '#34d399',
+              backgroundColor: gradUp,
+              fill: true,
+              tension: 0.4,
+              borderWidth: 2,
+              pointRadius: 0,
+              data: []
+            },
+            {
+              label: 'Download (MB/s)',
+              borderColor: '#06b6d4',
+              backgroundColor: gradDown,
+              fill: true,
+              tension: 0.4,
+              borderWidth: 2,
+              pointRadius: 0,
+              data: []
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: 'rgba(255, 255, 255, 0.4)', font: { family: 'JetBrains Mono', size: 10 } }
+            },
+            y: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: 'rgba(255, 255, 255, 0.4)', font: { family: 'JetBrains Mono', size: 10 } }
+            }
+          }
+        }
+      });
+    }
+
+    // 2. Connections View
+    async function fetchConnections() {
+      const res = await fetch('/api/connections');
+      const data = await res.json();
+      const body = document.getElementById('connectionsTableBody');
+      if (!body) return;
+
+      body.innerHTML = data.connections.map(c => `
+        <tr class="hover:bg-white/5 transition-colors">
+          <td class="py-3 px-4 font-bold text-white">${c.client}</td>
+          <td class="py-3 px-4 text-white/70">${c.configuration}</td>
+          <td class="py-3 px-4 mono text-pink-300 font-bold">${c.protocol}</td>
+          <td class="py-3 px-4 mono text-cyan-400">${c.transport}</td>
+          <td class="py-3 px-4 mono text-white/60">${c.remoteAddress}</td>
+          <td class="py-3 px-4 mono text-emerald-400">${c.traffic}</td>
+          <td class="py-3 px-4 mono text-white/50">${c.duration}</td>
+          <td class="py-3 px-4 text-center">
+            <button onclick="terminateConn('${c.id}')" class="px-2.5 py-1 bg-red-500/10 hover:bg-red-500/20 text-red-300 rounded-lg border border-red-500/20 text-[11px] font-semibold cursor-pointer">
+              Terminate
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function terminateConn(id) {
+      await fetch(`/api/connections/${id}/terminate`, { method: 'POST' });
+      fetchConnections();
+    }
+
+    // 3. Configurations View
+    async function fetchConfigurations() {
+      try {
+        const res = await fetch('/api/configurations');
+        if (!res.ok) return;
+        const data = await res.json();
+        const grid = document.getElementById('inboundsGrid');
+        if (!grid) return;
+
+        grid.innerHTML = data.inbounds.map(i => {
+          const isCloak = i.transportMode === 'cloak_ws';
+          const modeBadge = isCloak 
+            ? `<span class="px-2 py-0.5 text-[9px] font-bold rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 mono uppercase">CLOAK WS</span>`
+            : `<span class="px-2 py-0.5 text-[9px] font-bold rounded-full bg-white/10 text-white/70 border border-white/10 mono uppercase">STANDARD</span>`;
+
+          const status = i.deploymentStatus || (i.enabled ? 'ACTIVE' : 'DRAFT');
+          let statusBadge = '';
+          if (status === 'ACTIVE') {
+            statusBadge = `<span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 mono uppercase flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> ACTIVE</span>`;
+          } else if (status === 'DEPLOYING') {
+            statusBadge = `<span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 mono uppercase animate-pulse flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping"></span> DEPLOYING</span>`;
+          } else if (status === 'FAILED') {
+            statusBadge = `<span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-red-500/10 text-red-400 border border-red-500/30 mono uppercase flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-red-400"></span> FAILED</span>`;
+          } else {
+            statusBadge = `<span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-white/10 text-white/50 border border-white/10 mono uppercase">DRAFT</span>`;
+          }
+
+          return `
+            <div class="p-5 rounded-3xl emless-glass border border-white/10 space-y-4">
+              <div class="flex items-start justify-between">
+                <div>
+                  <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-white/10 text-accent-gradient mono uppercase">${i.protocol}</span>
+                    ${modeBadge}
+                    ${statusBadge}
+                  </div>
+                  <h3 class="text-base font-bold text-white mt-1.5">${i.name}</h3>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button onclick="deployInbound('${i.id}')" id="btnDeploy-${i.id}" class="px-3 py-1 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/15 text-white border border-white/20 transition-all cursor-pointer flex items-center gap-1.5 shadow" title="Deploy / Reload Configuration">
+                    <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <span>Deploy</span>
+                  </button>
+                  <button onclick="toggleInbound('${i.id}')" class="px-3 py-1 rounded-xl text-xs font-bold border transition-colors cursor-pointer ${i.enabled ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' : 'bg-white/5 text-white/40 border-white/10'}">
+                    ${i.enabled ? 'Enabled' : 'Disabled'}
+                  </button>
+                </div>
+              </div>
+
+              ${i.lastError ? `
+                <div class="p-3 rounded-2xl bg-red-500/10 border border-red-500/30 text-xs text-red-300 flex items-start gap-2">
+                  <svg class="w-4 h-4 text-red-400 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                  <div>
+                    <div class="font-bold">Deployment Error</div>
+                    <div class="text-[11px] opacity-90">${i.lastError}</div>
+                  </div>
+                </div>
+              ` : ''}
+
+              <div class="grid grid-cols-2 gap-2 text-xs mono text-white/70 p-3 rounded-2xl bg-black/40 border border-white/5">
+                <div>Port: <b class="text-white">${i.port}</b></div>
+                <div>Transport: <b class="${isCloak ? 'text-cyan-300' : 'text-white'}">${isCloak ? 'Cloak WS' : i.transport}</b></div>
+                <div>Security: <b class="text-white">${i.security}</b></div>
+                <div>Traffic: <b class="text-emerald-400">${i.totalTraffic}</b></div>
+                ${isCloak ? `<div class="col-span-2 text-[10px] text-cyan-400/80 truncate">Path: ${i.path} · Mask: ${i.cloakMaskSni || 'default'}</div>` : ''}
+              </div>
+
+              <div class="flex items-center justify-between pt-2 border-t border-white/10">
+                <span class="text-xs text-white/50">${i.activeConnections} active sessions</span>
+                <div class="flex items-center gap-3">
+                  <button onclick="inspectInbound('${i.id}')" class="text-xs text-cyan-400 hover:underline cursor-pointer">Inspect URI</button>
+                  <button onclick="deleteInbound('${i.id}')" class="text-xs text-red-400 hover:underline cursor-pointer">Delete</button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error('Error fetching configurations:', err);
+      }
+    }
+
+    async function deployInbound(id) {
+      const btn = document.getElementById(`btnDeploy-${id}`);
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span class="inline-block animate-spin">⟳</span> Deploying...`;
+      }
+
+      try {
+        const res = await fetch(`/api/configurations/${id}/deploy`, { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+          showToast(data.message || `Inbound deployed successfully!`);
+        } else {
+          showToast(`Deployment error: ${data.error || 'Unknown error'}`, 'error');
+        }
+      } catch (err) {
+        showToast(`Network error communicating with EMLESS core`, 'error');
+      } finally {
+        fetchConfigurations();
+        fetchDashboardData();
+      }
+    }
+
+    async function deployAllConfigurations() {
+      const btn = document.getElementById('btnDeployAllInbounds');
+      if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `<span class="inline-block animate-spin">⟳</span> Deploying All...`;
+      }
+
+      try {
+        const res = await fetch('/api/configurations/deploy-all', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+          showToast(`Successfully deployed ${data.deployedCount} inbounds to kernel!`);
+        } else {
+          showToast(`Deployment finished with ${data.failedCount} failures`, 'error');
+        }
+      } catch (err) {
+        showToast('Network error deploying configurations', 'error');
+      } finally {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = `<svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg><span>Deploy All</span>`;
+        }
+        fetchConfigurations();
+        fetchDashboardData();
+      }
+    }
+
+    async function inspectInbound(id) {
+      try {
+        const res = await fetch('/api/clients');
+        const data = await res.json();
+        const primaryClient = (data.clients && data.clients.length > 0) ? data.clients[0] : null;
+        if (primaryClient) {
+          openQrModal(primaryClient.id);
+        } else {
+          showToast('No client profile available to generate URI link', 'error');
+        }
+      } catch (err) {
+        showToast('Failed to load client profile', 'error');
+      }
+    }
+
+    async function toggleInbound(id) {
+      try {
+        const res = await fetch(`/api/configurations/${id}/toggle`, { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to toggle inbound', 'error');
+        }
+      } catch (e) {
+        showToast('Network error', 'error');
+      }
+      fetchConfigurations();
+      fetchDashboardData();
+    }
+
+    async function deleteInbound(id) {
+      if (!confirm('Are you sure you want to delete this inbound?')) return;
+      try {
+        await fetch(`/api/configurations/${id}`, { method: 'DELETE' });
+        showToast('Inbound deleted');
+      } catch (e) {
+        showToast('Failed to delete inbound', 'error');
+      }
+      fetchConfigurations();
+      fetchDashboardData();
+    }
+
+    // Toast Notification System
+    function showToast(message, type = 'success') {
+      const existing = document.getElementById('emlessToast');
+      if (existing) existing.remove();
+
+      const toast = document.createElement('div');
+      toast.id = 'emlessToast';
+      toast.className = `fixed bottom-6 right-6 z-50 px-4 py-3 rounded-2xl shadow-2xl border text-xs font-semibold flex items-center gap-2.5 transition-all transform duration-300 translate-y-0 opacity-100 ${
+        type === 'error' 
+          ? 'bg-red-950/90 text-red-200 border-red-500/30' 
+          : type === 'info' 
+            ? 'bg-sky-950/90 text-sky-200 border-sky-500/30'
+            : 'bg-black/90 text-white border-white/20'
+      }`;
+      
+      const icon = type === 'error' 
+        ? `<span class="text-red-400 font-bold">✕</span>` 
+        : type === 'info'
+          ? `<span class="text-sky-400 font-bold">ℹ</span>`
+          : `<span class="text-emerald-400 font-bold">✓</span>`;
+
+      toast.innerHTML = `${icon}<span>${message}</span>`;
+      document.body.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateY(10px)';
+        setTimeout(() => toast.remove(), 300);
+      }, 3200);
+    }
+
+    // 4. Clients View
+    async function fetchClients() {
+      try {
+        const res = await fetch('/api/clients');
+        const data = await res.json();
+        const body = document.getElementById('clientsTableBody');
+        if (!body) return;
+
+        if (!data.clients || data.clients.length === 0) {
+          body.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-xs text-white/40">No client accounts created yet. Click "+ Add Client" to generate credentials.</td></tr>`;
+          return;
+        }
+
+        body.innerHTML = data.clients.map(c => {
+          const usedTotal = +((c.usedDownloadGB || 0) + (c.usedUploadGB || 0)).toFixed(2);
+          const quota = c.quotaGB || 50;
+          const pct = Math.min(100, Math.round((usedTotal / (quota || 1)) * 100));
+          const isActive = c.status === 'active';
+
+          return `
+            <tr class="hover:bg-white/5 transition-colors">
+              <td class="py-3 px-4">
+                <div class="font-bold text-white">${c.email}</div>
+                <div class="text-[10px] text-white/40 mono">Token: ${c.subToken ? c.subToken.substring(0, 8) + '...' : 'none'}</div>
+              </td>
+              <td class="py-3 px-4 mono text-[11px] text-white/60 truncate max-w-[140px]" title="${c.uuid}">${c.uuid}</td>
+              <td class="py-3 px-4">
+                <div class="text-xs text-white mono font-semibold">${usedTotal} / ${quota} GB</div>
+                <div class="w-24 h-1.5 bg-white/10 rounded-full mt-1 overflow-hidden">
+                  <div class="h-full bg-accent-gradient rounded-full" style="width: ${pct}%"></div>
+                </div>
+              </td>
+              <td class="py-3 px-4 mono text-xs text-white/70">${c.expiryDays || 30} Days</td>
+              <td class="py-3 px-4">
+                <span class="px-2 py-0.5 text-[10px] font-bold rounded-full ${isActive ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'} uppercase">
+                  ${c.status || 'active'}
+                </span>
+              </td>
+              <td class="py-3 px-4 text-center">
+                <div class="flex items-center justify-center gap-1.5">
+                  <button onclick="inspectClientSub('${c.id}', '${c.email}')" class="px-2.5 py-1 btn-accent rounded-lg text-xs font-bold cursor-pointer" title="Inspect Subscription & QR">
+                    QR / Sub
+                  </button>
+                  <button onclick="toggleClientStatus('${c.id}', '${c.email}')" class="p-1.5 emless-glass hover:bg-white/10 rounded-lg text-white/70 hover:text-white text-xs cursor-pointer" title="${isActive ? 'Disable Client' : 'Enable Client'}">
+                    ${isActive ? '⏸' : '▶'}
+                  </button>
+                  <button onclick="regenerateClientToken('${c.id}', '${c.email}')" class="p-1.5 emless-glass hover:bg-white/10 rounded-lg text-white/70 hover:text-white text-xs cursor-pointer" title="Regenerate Subscription Token">
+                    🔑
+                  </button>
+                  <button onclick="resetClientTraffic('${c.id}')" class="p-1.5 emless-glass hover:bg-white/10 rounded-lg text-white/70 hover:text-white text-xs cursor-pointer" title="Reset Bandwidth Counters">
+                    🔄
+                  </button>
+                  <button onclick="deleteClient('${c.id}', '${c.email}')" class="p-1.5 hover:bg-red-500/20 rounded-lg text-red-400 text-xs cursor-pointer" title="Delete Client">
+                    ✕
+                  </button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error('Error loading clients:', err);
+      }
+    }
+
+    async function toggleClientStatus(id, email) {
+      try {
+        const res = await fetch(`/api/clients/${id}/toggle-status`, { method: 'POST' });
+        if (res.ok) {
+          showToast(`Client ${email} status updated!`);
+          fetchClients();
+          fetchSubscriptions();
+        } else {
+          showToast('Failed to toggle client status', 'error');
+        }
+      } catch (e) {
+        showToast('Network error updating client', 'error');
+      }
+    }
+
+    async function regenerateClientToken(id, email) {
+      if (!confirm(`Regenerate subscription token for ${email}? Existing subscription links will stop working immediately.`)) return;
+      try {
+        const res = await fetch(`/api/clients/${id}/regenerate-token`, { method: 'POST' });
+        if (res.ok) {
+          showToast(`Subscription token regenerated for ${email}!`);
+          fetchClients();
+          fetchSubscriptions();
+        } else {
+          showToast('Failed to regenerate token', 'error');
+        }
+      } catch (e) {
+        showToast('Network error regenerating token', 'error');
+      }
+    }
+
+    async function resetClientTraffic(id) {
+      try {
+        const res = await fetch(`/api/clients/${id}/reset-traffic`, { method: 'POST' });
+        if (res.ok) {
+          showToast('Bandwidth counters reset!');
+          fetchClients();
+          fetchSubscriptions();
+          fetchTraffic();
+        }
+      } catch (e) {
+        showToast('Failed to reset bandwidth', 'error');
+      }
+    }
+
+    async function deleteClient(id, email) {
+      if (!confirm(`Delete client ${email}? This will remove all associated configurations and subscriptions.`)) return;
+      try {
+        const res = await fetch(`/api/clients/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          showToast(`Client ${email} deleted.`);
+          fetchClients();
+          fetchSubscriptions();
+          fetchTraffic();
+        }
+      } catch (e) {
+        showToast('Failed to delete client', 'error');
+      }
+    }
+
+    // 5. Subscriptions View
+    async function fetchSubscriptions() {
+      try {
+        const res = await fetch('/api/subscriptions');
+        const data = await res.json();
+        const list = document.getElementById('subscriptionsList');
+        if (!list) return;
+
+        const subs = data.subscriptions || [];
+        const activeCount = subs.filter(s => s.status === 'active').length;
+        const activeEl = document.getElementById('subStatsActive');
+        if (activeEl) activeEl.innerText = `${activeCount} / ${subs.length} Active`;
+
+        if (subs.length === 0) {
+          list.innerHTML = `
+            <div class="col-span-full p-8 rounded-3xl emless-glass border border-white/10 text-center space-y-3">
+              <div class="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/50 mx-auto">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              </div>
+              <h4 class="text-sm font-bold text-white">No Active Subscriptions</h4>
+              <p class="text-xs text-white/60 max-w-sm mx-auto">Create a client to automatically provision dedicated V2Ray-compatible subscription links and Base64 endpoints.</p>
+              <button onclick="openAddClientModal()" class="px-4 py-2 btn-accent rounded-xl text-xs font-bold inline-block cursor-pointer">
+                Create First Subscription
+              </button>
+            </div>
+          `;
+          return;
+        }
+
+        list.innerHTML = subs.map(s => {
+          const isActive = s.status === 'active';
+          return `
+            <div class="p-6 rounded-3xl emless-glass border border-white/10 space-y-4 relative overflow-hidden transition-all hover:border-white/20">
+              
+              <!-- Card Header -->
+              <div class="flex items-start justify-between gap-3">
+                <div class="space-y-1">
+                  <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full ${isActive ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-red-500/10 text-red-400 border border-red-500/20'} uppercase">
+                      ${s.status}
+                    </span>
+                    <span class="px-2.5 py-0.5 text-[10px] font-bold rounded-full bg-white/10 text-white/80 border border-white/10 mono">
+                      ${s.configsCount} Inbounds Embedded
+                    </span>
+                  </div>
+                  <h3 class="text-base font-bold text-white">${s.profileName || 'EMLESS — ' + s.email}</h3>
+                  <p class="text-xs text-white/50">User: <b class="text-white/80">${s.email}</b> · Token: <code class="mono text-accent-gradient text-[11px]">${s.subToken ? s.subToken.substring(0, 8) + '...' + s.subToken.substring(24) : 'none'}</code></p>
+                </div>
+
+                <div class="flex items-center gap-1.5">
+                  <button onclick="inspectClientSub('${s.id}', '${s.email}')" class="p-2.5 rounded-xl btn-accent text-xs font-bold flex items-center gap-1.5 shadow cursor-pointer" title="Open QR & Configuration Inspector">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z"/></svg>
+                    <span>QR & View</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Bandwidth & Validity Metrics -->
+              <div class="p-3 rounded-2xl bg-black/40 border border-white/5 space-y-2">
+                <div class="flex items-center justify-between text-xs">
+                  <span class="text-white/60">Data Consumption:</span>
+                  <span class="mono font-bold text-white">${s.usedTotalGB} / ${s.quotaGB} GB (${s.percent}%)</span>
+                </div>
+                <div class="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
+                  <div class="h-full bg-accent-gradient rounded-full" style="width: ${s.percent}%"></div>
+                </div>
+                <div class="flex items-center justify-between text-[11px] text-white/50 pt-1">
+                  <span>Validity: <b class="text-white/70">${s.expiryDays} Days remaining</b></span>
+                  <span>Created: <b class="text-white/70 mono">${s.createdAt}</b></span>
+                </div>
+              </div>
+
+              <!-- Standard Subscription Endpoint Box -->
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                  <label class="font-semibold text-white/70">Standard V2Ray Subscription URL</label>
+                  <span class="text-[10px] text-emerald-400 font-mono">/sub/${s.subToken ? s.subToken.substring(0, 6) + '...' : ''}</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <input type="text" readonly value="${s.subscriptionUrl}" class="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-xl text-white/90 font-mono text-[11px] select-all">
+                  <button onclick="copyToClipboard('${s.subscriptionUrl}')" class="px-3 py-2 emless-glass hover:bg-white/10 border border-white/15 rounded-xl text-xs font-semibold text-white shrink-0 cursor-pointer" title="Copy Subscription URL">
+                    Copy
+                  </button>
+                  <a href="${s.subscriptionUrl}" target="_blank" class="p-2 emless-glass hover:bg-white/10 border border-white/15 rounded-xl text-white/80 hover:text-white shrink-0 cursor-pointer" title="Open and Test URL in Browser">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                  </a>
+                </div>
+              </div>
+
+              <!-- Base64 Subscription Endpoint Box -->
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-xs">
+                  <label class="font-semibold text-white/70">Base64 Subscription URL</label>
+                  <span class="text-[10px] text-cyan-300 font-mono">/sub/.../base64</span>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <input type="text" readonly value="${s.base64Url}" class="w-full px-3 py-2 bg-black/50 border border-white/10 rounded-xl text-white/90 font-mono text-[11px] select-all">
+                  <button onclick="copyToClipboard('${s.base64Url}')" class="px-3 py-2 emless-glass hover:bg-white/10 border border-white/15 rounded-xl text-xs font-semibold text-cyan-300 shrink-0 cursor-pointer" title="Copy Base64 Subscription URL">
+                    Copy
+                  </button>
+                </div>
+              </div>
+
+              <!-- Card Action Toolbar -->
+              <div class="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div class="flex items-center gap-2">
+                  <button onclick="toggleSubStatus('${s.id}', '${s.email}')" class="px-3 py-1.5 emless-glass hover:bg-white/10 border border-white/15 rounded-xl font-semibold text-white/80 hover:text-white flex items-center gap-1.5 cursor-pointer">
+                    <span>${isActive ? '⏸ Disable' : '▶ Enable'}</span>
+                  </button>
+                  <button onclick="regenerateSubToken('${s.id}', '${s.email}')" class="px-3 py-1.5 emless-glass hover:bg-white/10 border border-white/15 rounded-xl font-semibold text-white/80 hover:text-white flex items-center gap-1.5 cursor-pointer" title="Regenerate Token">
+                    <svg class="w-3.5 h-3.5 text-accent-gradient" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"/></svg>
+                    <span>Regenerate Token</span>
+                  </button>
+                </div>
+
+                <button onclick="deleteSubscription('${s.id}', '${s.email}')" class="px-3 py-1.5 hover:bg-red-500/20 text-red-400 rounded-xl font-semibold transition-colors cursor-pointer">
+                  Delete
+                </button>
+              </div>
+
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error('Error loading subscriptions:', err);
+      }
+    }
+
+    async function toggleSubStatus(id, email) {
+      try {
+        const res = await fetch(`/api/subscriptions/${id}/toggle`, { method: 'POST' });
+        if (res.ok) {
+          showToast(`Subscription status updated for ${email}`);
+          fetchSubscriptions();
+          fetchClients();
+        } else {
+          showToast('Failed to toggle subscription', 'error');
+        }
+      } catch (e) {
+        showToast('Network error updating subscription', 'error');
+      }
+    }
+
+    async function regenerateSubToken(id, email) {
+      if (!confirm(`Regenerate subscription token for ${email}? Existing subscription links will stop working immediately.`)) return;
+      try {
+        const res = await fetch(`/api/subscriptions/${id}/regenerate-token`, { method: 'POST' });
+        if (res.ok) {
+          showToast(`Subscription token regenerated!`);
+          fetchSubscriptions();
+          fetchClients();
+        } else {
+          showToast('Failed to regenerate token', 'error');
+        }
+      } catch (e) {
+        showToast('Network error regenerating token', 'error');
+      }
+    }
+
+    async function deleteSubscription(id, email) {
+      if (!confirm(`Delete subscription for ${email}?`)) return;
+      try {
+        const res = await fetch(`/api/subscriptions/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+          showToast(`Subscription deleted for ${email}`);
+          fetchSubscriptions();
+          fetchClients();
+        }
+      } catch (e) {
+        showToast('Failed to delete subscription', 'error');
+      }
+    }
+
+    // Inspector State Cache
+    let activeInspectionData = null;
+    let activeInspectionFormat = 'standard';
+
+    // Inspect Client Sub Modal
+    async function inspectClientSub(clientId, email) {
+      try {
+        const res = await fetch(`/api/subscriptions/client/${clientId}`);
+        if (!res.ok) {
+          showToast('Failed to load subscription payload', 'error');
+          return;
+        }
+        activeInspectionData = await res.json();
+        activeInspectionFormat = 'standard';
+
+        document.getElementById('modalQrTitle').innerText = activeInspectionData.profileName || `EMLESS — ${email}`;
+        document.getElementById('modalQrSubtitle').innerText = `User Account: ${email}`;
+        document.getElementById('modalQrUserinfo').innerText = activeInspectionData.userinfo || 'upload=0; download=0; total=0; expire=0';
+        document.getElementById('modalQrCountBadge').innerText = `${(activeInspectionData.configs || []).length} active inbounds`;
+        document.getElementById('modalQrStatusBadge').innerText = (activeInspectionData.client && activeInspectionData.client.status === 'disabled') ? 'DISABLED' : 'ACTIVE';
+        document.getElementById('modalQrStatusBadge').className = (activeInspectionData.client && activeInspectionData.client.status === 'disabled') ? 'text-red-400 font-mono text-[10px]' : 'text-emerald-400 font-mono text-[10px]';
+
+        renderInspectorFormat('standard');
+        document.getElementById('modalQr').classList.remove('hidden');
+      } catch (err) {
+        showToast('Network error loading subscription details', 'error');
+      }
+    }
+
+    function switchInspectorFormat(fmt) {
+      activeInspectionFormat = fmt;
+      renderInspectorFormat(fmt);
+    }
+
+    function renderInspectorFormat(fmt) {
+      if (!activeInspectionData) return;
+
+      // Update Tab Styles
+      const tabs = [
+        { id: 'btnInspFmtStandard', key: 'standard' },
+        { id: 'btnInspFmtBase64Url', key: 'base64url' },
+        { id: 'btnInspFmtPlain', key: 'plain' },
+        { id: 'btnInspFmtBase64Payload', key: 'base64payload' }
+      ];
+
+      tabs.forEach(t => {
+        const el = document.getElementById(t.id);
+        if (!el) return;
+        if (t.key === fmt) {
+          el.className = 'flex-1 py-1.5 px-2 rounded-xl text-[11px] font-bold text-white bg-white/20 shadow transition-all cursor-pointer';
+        } else {
+          el.className = 'flex-1 py-1.5 px-2 rounded-xl text-[11px] font-semibold text-white/60 hover:text-white transition-all cursor-pointer';
+        }
+      });
+
+      let contentToDisplay = '';
+      let textForQr = '';
+      let notice = '';
+      let openUrl = activeInspectionData.subscriptionUrl;
+
+      if (fmt === 'standard') {
+        contentToDisplay = activeInspectionData.subscriptionUrl;
+        textForQr = activeInspectionData.subscriptionUrl;
+        notice = 'QR encodes Standard V2Ray Subscription URL for 1-click import';
+        openUrl = activeInspectionData.subscriptionUrl;
+        document.getElementById('modalQrPayloadLabel').innerText = 'Standard V2Ray Subscription URL';
+      } else if (fmt === 'base64url') {
+        contentToDisplay = activeInspectionData.base64Url;
+        textForQr = activeInspectionData.base64Url;
+        notice = 'QR encodes Dedicated Base64 Subscription URL';
+        openUrl = activeInspectionData.base64Url;
+        document.getElementById('modalQrPayloadLabel').innerText = 'Base64 Subscription URL';
+      } else if (fmt === 'plain') {
+        contentToDisplay = activeInspectionData.rawUris || 'No inbounds currently active';
+        textForQr = activeInspectionData.plainUrl || activeInspectionData.subscriptionUrl;
+        notice = 'Newline-separated individual protocol links (vless://, trojan://, ss://)';
+        openUrl = activeInspectionData.plainUrl;
+        document.getElementById('modalQrPayloadLabel').innerText = 'Plain Text Protocol Share Links';
+      } else if (fmt === 'base64payload') {
+        contentToDisplay = activeInspectionData.base64Encoded || '';
+        textForQr = activeInspectionData.base64Url;
+        notice = 'Base64 encoded UTF-8 subscription payload';
+        openUrl = activeInspectionData.base64Url;
+        document.getElementById('modalQrPayloadLabel').innerText = 'Base64 Encoded Subscription String';
+      }
+
+      document.getElementById('modalQrPayload').value = contentToDisplay;
+      document.getElementById('qrFormatNotice').innerText = notice;
+      document.getElementById('btnOpenSubLink').href = openUrl;
+
+      // Render QR Canvas from the verified subscription endpoint
+      const qrCanvas = document.getElementById('qrcodeCanvas');
+      qrCanvas.innerHTML = '';
+      new QRCode(qrCanvas, {
+        text: textForQr,
+        width: 170,
+        height: 170,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    }
+
+
+    // 6. Traffic View
+    async function fetchTraffic() {
+      const res = await fetch('/api/traffic');
+      const data = await res.json();
+
+      const userList = document.getElementById('trafficUserList');
+      if (userList) {
+        userList.innerHTML = data.userUsage.map(u => `
+          <div>
+            <div class="flex justify-between text-xs font-semibold mb-1">
+              <span class="text-white">${u.email}</span>
+              <span class="mono text-white/70">${u.usedTotalGB} / ${u.quotaGB} GB (${u.percent}%)</span>
+            </div>
+            <div class="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+              <div class="h-full bg-accent-gradient rounded-full" style="width: ${u.percent}%"></div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      const inbList = document.getElementById('trafficInboundList');
+      if (inbList) {
+        inbList.innerHTML = data.inboundUsage.map(i => `
+          <div class="p-3 rounded-2xl bg-white/5 border border-white/10 flex justify-between text-xs">
+            <div>
+              <div class="font-bold text-white">${i.name}</div>
+              <div class="text-[10px] text-white/50 uppercase mono">${i.protocol}</div>
+            </div>
+            <span class="mono text-emerald-400 font-bold">${i.totalTraffic}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    // 7. Telegram MTProto Proxy View (SE7O-SNA ADAPTATION)
+    async function fetchTelegramProxy() {
+      const res = await fetch('/api/telegram-proxy/status');
+      const data = await res.json();
+
+      document.getElementById('tgStatusLabel').innerText = data.status.toUpperCase();
+      document.getElementById('tgStatusLabel').className = data.status === 'running' ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold';
+      document.getElementById('tgActiveConn').innerText = data.activeConnections;
+      document.getElementById('tgPortLabel').innerText = `:${data.port}`;
+
+      document.getElementById('tgDirectLink').href = data.links.tg;
+      document.getElementById('tgUrlInput').value = data.links.tg;
+
+      document.getElementById('tgParamHost').innerText = data.server;
+      document.getElementById('tgParamPort').innerText = data.port;
+      document.getElementById('tgSecretDisplay').innerText = data.secret;
+
+      // Config form defaults
+      document.getElementById('cfgTgPort').value = data.port;
+      document.getElementById('cfgTgSni').value = data.sni;
+      document.getElementById('cfgTgTag').value = data.tag || '';
+    }
+
+    async function startTgProxy() {
+      const res = await fetch('/api/telegram-proxy/start', { method: 'POST' });
+      await res.json();
+      fetchTelegramProxy();
+    }
+
+    async function stopTgProxy() {
+      const res = await fetch('/api/telegram-proxy/stop', { method: 'POST' });
+      await res.json();
+      fetchTelegramProxy();
+    }
+
+    async function restartTgProxy() {
+      const res = await fetch('/api/telegram-proxy/restart', { method: 'POST' });
+      await res.json();
+      fetchTelegramProxy();
+    }
+
+    function copyTgLink() {
+      const input = document.getElementById('tgUrlInput');
+      copyToClipboard(input.value, 'Telegram Proxy URL copied to clipboard!');
+    }
+
+    function copyTgSecret() {
+      const sec = document.getElementById('tgSecretDisplay').innerText.trim();
+      copyToClipboard(sec, 'MTProto Secret copied to clipboard!');
+    }
+
+    function showTgQrModal() {
+      const url = document.getElementById('tgUrlInput').value;
+      document.getElementById('modalQrTitle').innerText = 'Telegram MTProto Proxy QR';
+      document.getElementById('modalQrPayload').value = url;
+
+      const qrCanvas = document.getElementById('qrcodeCanvas');
+      qrCanvas.innerHTML = '';
+      new QRCode(qrCanvas, {
+        text: url,
+        width: 180,
+        height: 180,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.M
+      });
+
+      document.getElementById('modalQr').classList.remove('hidden');
+    }
+
+    async function generateNewFakeTlsSecret() {
+      const sni = document.getElementById('cfgTgSni').value.trim() || 'www.speedtest.net';
+      await fetch('/api/telegram-proxy/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ generateNewSecret: true, fakeTls: true, sni })
+      });
+      fetchTelegramProxy();
+    }
+
+    document.getElementById('tgConfigForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const port = document.getElementById('cfgTgPort').value;
+      const sni = document.getElementById('cfgTgSni').value;
+      const tag = document.getElementById('cfgTgTag').value;
+
+      try {
+        const res = await fetch('/api/telegram-proxy/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ port, sni, tag })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showToast('Telegram MTProto configuration updated & applied!');
+        } else {
+          showToast(data.error || 'Failed to update Telegram proxy configuration', 'error');
+        }
+      } catch (err) {
+        showToast('Network error updating Telegram proxy', 'error');
+      }
+      fetchTelegramProxy();
+    });
+
+    // 8. System View
+    async function fetchSystem() {
+      const res = await fetch('/api/system');
+      const data = await res.json();
+
+      document.getElementById('sysCpuPct').innerText = `${data.stats.cpuUsage}%`;
+      document.getElementById('sysCpuBar').style.width = `${data.stats.cpuUsage}%`;
+
+      document.getElementById('sysRamPct').innerText = `${data.stats.memory.percent}%`;
+      document.getElementById('sysRamDetail').innerText = `${data.stats.memory.usedGB} / ${data.stats.memory.totalGB}`;
+      document.getElementById('sysRamBar').style.width = `${data.stats.memory.percent}%`;
+
+      document.getElementById('sysDbBadge').innerText = data.environment.databaseType;
+
+      const logBox = document.getElementById('systemLogBox');
+      if (logBox) {
+        logBox.innerHTML = data.logs.map(l => `
+          <div>
+            <span class="text-white/40">[${l.time}]</span>
+            <span class="text-accent-gradient font-bold">${l.type}:</span>
+            <span class="text-white/80">${l.text}</span>
+          </div>
+        `).join('');
+      }
+    }
+
+    async function clearSystemLogs() {
+      await fetch('/api/system/logs/clear', { method: 'POST' });
+      showToast('System logs cleared');
+      fetchSystem();
+    }
+
+    async function testPingLatency() {
+      try {
+        const res = await fetch('/api/system/ping', { method: 'POST' });
+        const data = await res.json();
+        showToast(`Ping Test to ${data.host}: RTT ${data.rttMs}ms [${data.status}]`, data.status === 'ONLINE' ? 'success' : 'info');
+      } catch (err) {
+        showToast('Ping test failed: network error', 'error');
+      }
+    }
+
+    // 9. Settings View
+    async function fetchSettings() {
+      const res = await fetch('/api/settings');
+      const data = await res.json();
+
+      document.getElementById('setAdminUsername').value = data.adminUsername;
+      document.getElementById('setDomain').value = data.systemSettings.domain;
+      document.getElementById('setSni').value = data.systemSettings.sni;
+      document.getElementById('setFragLen').value = data.systemSettings.fragmentLength || '100-200';
+      document.getElementById('setFragInt').value = data.systemSettings.fragmentInterval || '10-20';
+      document.getElementById('setCleanIps').value = (data.systemSettings.cleanIps || []).join(', ');
+
+      const defMode = data.systemSettings.defaultTransportMode || 'standard';
+      if (defMode === 'cloak_ws') {
+        document.getElementById('setTransportCloakWs').checked = true;
+      } else {
+        document.getElementById('setTransportStandard').checked = true;
+      }
+      document.getElementById('setCloakMaskSni').value = data.systemSettings.cloakMaskSni || data.systemSettings.sni || 'www.cloudflare.com';
+    }
+
+    document.getElementById('settingsGeneralForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const adminUsername = document.getElementById('setAdminUsername').value;
+      const adminPassword = document.getElementById('setAdminPassword').value;
+      const domain = document.getElementById('setDomain').value;
+      const sni = document.getElementById('setSni').value;
+
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            adminUsername,
+            adminPassword: adminPassword || undefined,
+            systemSettings: { domain, sni }
+          })
+        });
+        if (res.ok) {
+          showToast('General settings saved successfully!');
+        } else {
+          showToast('Failed to save settings', 'error');
+        }
+      } catch (err) {
+        showToast('Network error saving settings', 'error');
+      }
+      fetchSettings();
+    });
+
+    document.getElementById('settingsTransportForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const defaultTransportMode = document.querySelector('input[name="setDefaultTransport"]:checked')?.value || 'standard';
+      const cloakMaskSni = document.getElementById('setCloakMaskSni').value;
+
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemSettings: { defaultTransportMode, cloakMaskSni }
+          })
+        });
+        if (res.ok) {
+          showToast('Transport policy saved successfully!');
+        } else {
+          showToast('Failed to save transport policy', 'error');
+        }
+      } catch (err) {
+        showToast('Network error saving transport policy', 'error');
+      }
+      fetchSettings();
+    });
+
+    document.getElementById('settingsAntiFilterForm')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const fragmentLength = document.getElementById('setFragLen').value;
+      const fragmentInterval = document.getElementById('setFragInt').value;
+      const cleanIps = document.getElementById('setCleanIps').value.split(',').map(s => s.trim()).filter(Boolean);
+
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemSettings: { fragmentLength, fragmentInterval, cleanIps }
+          })
+        });
+        if (res.ok) {
+          showToast('Anti-censorship and clean IPs saved!');
+        } else {
+          showToast('Failed to save anti-censorship settings', 'error');
+        }
+      } catch (err) {
+        showToast('Network error saving anti-censorship settings', 'error');
+      }
+      fetchSettings();
+    });
+
+    function downloadBackupJson() {
+      window.location.href = '/api/settings/backup';
+    }
+
+    async function uploadRestoreJson(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const json = JSON.parse(e.target.result);
+          const res = await fetch('/api/settings/restore', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(json)
+          });
+          if (res.ok) {
+            showToast('State restored successfully! Reloading...');
+            setTimeout(() => location.reload(), 1000);
+          } else {
+            showToast('Restore failed: invalid database structure', 'error');
+          }
+        } catch (err) {
+          showToast('Invalid JSON file', 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // Navigation & Mobile Drawer
+    function toggleMobileNav(open) {
+      const drawer = document.getElementById('mobileNavDrawer');
+      const backdrop = document.getElementById('mobileNavBackdrop');
+      if (!drawer || !backdrop) return;
+      if (open === true) {
+        drawer.classList.remove('translate-x-full');
+        backdrop.classList.remove('hidden');
+      } else if (open === false) {
+        drawer.classList.add('translate-x-full');
+        backdrop.classList.add('hidden');
+      } else {
+        drawer.classList.toggle('translate-x-full');
+        backdrop.classList.toggle('hidden');
+      }
+    }
+
+    // Modal Control Helpers
+    function openAddClientModal() {
+      document.getElementById('modalAddClient').classList.remove('hidden');
+    }
+
+    // ================= 7-STEP CONFIGURATION WIZARD CONTROLLER =================
+    let wizardCurrentStep = 1;
+    let wizardState = {
+      clientId: 'all',
+      protocol: 'vless',
+      transportMode: 'standard',
+      name: 'VLESS REALITY Multi-Stream',
+      port: 8443,
+      host: 'railway.app',
+      transport: 'grpc',
+      security: 'reality',
+      path: '/emless-grpc',
+      cloakPath: '/cloak-ws-stream',
+      cloakMaskSni: 'www.cloudflare.com',
+      cloakEarlyData: '2048',
+      cloakFp: 'chrome',
+      cloakAlpn: 'h2,http/1.1'
+    };
+
+    async function openAddInboundModal() {
+      wizardCurrentStep = 1;
+      
+      // Clear previous error box
+      const errorBox = document.getElementById('wizErrorBox');
+      if (errorBox) errorBox.classList.add('hidden');
+
+      // Populate clients dropdown and find available port
+      try {
+        const [clientRes, configRes] = await Promise.all([
+          fetch('/api/clients'),
+          fetch('/api/configurations')
+        ]);
+        const clientData = await clientRes.json();
+        const configData = await configRes.json();
+
+        const clientSelect = document.getElementById('wizClientId');
+        if (clientSelect) {
+          clientSelect.innerHTML = `<option value="all">⚡ Global (All Active Clients)</option>` + 
+            (clientData.clients || []).map(c => `<option value="${c.id}">👤 ${c.email} (${c.uuid.substring(0, 8)}...)</option>`).join('');
+        }
+
+        // Calculate next available non-conflicting port (>= 8443, avoid 3000, 8444)
+        const usedPorts = new Set((configData.inbounds || []).map(i => i.port));
+        usedPorts.add(3000);
+        usedPorts.add(8444);
+
+        let candidatePort = 8443;
+        while (usedPorts.has(candidatePort)) {
+          candidatePort++;
+        }
+        document.getElementById('wizInbPort').value = candidatePort;
+        document.getElementById('wizInbName').value = `VLESS Stream ${candidatePort}`;
+      } catch (err) {
+        console.error('Error fetching data for wizard:', err);
+      }
+
+      // Populate Host
+      const hostVal = document.getElementById('sideDomain')?.innerText || window.location.hostname || 'railway.app';
+      document.getElementById('wizInbHost').value = hostVal;
+      wizardState.host = hostVal;
+
+      // Randomize Cloak path
+      const randHex = Math.random().toString(36).substring(2, 8);
+      document.getElementById('wizCloakPath').value = `/cloak-ws-stream-${randHex}`;
+
+      wizardShowStep(1);
+      document.getElementById('modalConfigWizard').classList.remove('hidden');
+    }
+
+    function wizardShowStep(step) {
+      wizardCurrentStep = step;
+      
+      // Update Stepper Pills
+      for (let i = 1; i <= 7; i++) {
+        const pane = document.getElementById(`wizardStep-${i}`);
+        const pill = document.getElementById(`stepDot-${i}`);
+        if (pane) {
+          if (i === step) pane.classList.remove('hidden');
+          else pane.classList.add('hidden');
+        }
+        if (pill) {
+          if (i === step) {
+            pill.className = 'wizard-step-pill flex-1 py-1 px-1 rounded-lg bg-accent-gradient text-[10px] font-extrabold text-black text-center transition-all shadow-md';
+          } else if (i < step) {
+            pill.className = 'wizard-step-pill flex-1 py-1 px-1 rounded-lg bg-emerald-500/20 text-[10px] font-bold text-emerald-400 border border-emerald-500/30 text-center transition-all cursor-pointer';
+          } else {
+            pill.className = 'wizard-step-pill flex-1 py-1 px-1 rounded-lg bg-white/5 text-[10px] font-bold text-white/40 text-center transition-all cursor-pointer';
+          }
+        }
+      }
+
+      // Button states
+      const btnPrev = document.getElementById('wizBtnPrev');
+      const btnNext = document.getElementById('wizBtnNext');
+      const btnSubmit = document.getElementById('wizBtnSubmit');
+      const btnDone = document.getElementById('wizBtnDone');
+
+      btnPrev.classList.toggle('hidden', step === 1 || step === 7);
+      btnNext.classList.toggle('hidden', step >= 6);
+      btnSubmit.classList.toggle('hidden', step !== 6);
+      btnDone.classList.toggle('hidden', step !== 7);
+
+      if (step === 6) {
+        updateWizardReview();
+      }
+    }
+
+    function wizardNext() {
+      // Step-specific validations
+      if (wizardCurrentStep === 4) {
+        const name = (document.getElementById('wizInbName').value || '').trim();
+        const port = parseInt(document.getElementById('wizInbPort').value, 10);
+        if (!name || name.length < 2) {
+          showToast('Please enter a valid configuration name (at least 2 characters)', 'error');
+          document.getElementById('wizInbName').focus();
+          return;
+        }
+        if (isNaN(port) || port < 1 || port > 65535) {
+          showToast('Please enter a valid port number between 1 and 65535', 'error');
+          document.getElementById('wizInbPort').focus();
+          return;
+        }
+      }
+
+      if (wizardCurrentStep === 5) {
+        const mode = document.querySelector('input[name="wizTransportMode"]:checked')?.value || 'standard';
+        if (mode === 'cloak_ws') {
+          const path = (document.getElementById('wizCloakPath').value || '').trim();
+          if (!path || !path.startsWith('/')) {
+            showToast('Cloak WS path must start with a leading slash (e.g. /cloak-stream)', 'error');
+            document.getElementById('wizCloakPath').focus();
+            return;
+          }
+        }
+      }
+
+      if (wizardCurrentStep < 6) {
+        wizardShowStep(wizardCurrentStep + 1);
+      } else if (wizardCurrentStep === 6) {
+        wizardSubmit();
+      }
+    }
+
+    function wizardPrev() {
+      if (wizardCurrentStep > 1 && wizardCurrentStep < 7) {
+        wizardShowStep(wizardCurrentStep - 1);
+      }
+    }
+
+    function wizardJumpTo(step) {
+      if (step >= 1 && step <= 6) {
+        wizardShowStep(step);
+      }
+    }
+
+    function wizardSelectProto(proto) {
+      wizardState.protocol = proto;
+      
+      const cardV = document.getElementById('cardProtoVless');
+      const cardT = document.getElementById('cardProtoTrojan');
+      const cardS = document.getElementById('cardProtoSs');
+      
+      if (cardV) cardV.className = proto === 'vless' ? 'p-3.5 rounded-2xl border border-white/20 bg-white/10 hover:bg-white/15 cursor-pointer transition-all flex flex-col justify-between' : 'p-3.5 rounded-2xl border border-white/10 bg-black/30 hover:bg-white/5 cursor-pointer transition-all flex flex-col justify-between';
+      if (cardT) cardT.className = proto === 'trojan' ? 'p-3.5 rounded-2xl border border-cyan-500/40 bg-cyan-500/10 cursor-pointer transition-all flex flex-col justify-between' : 'p-3.5 rounded-2xl border border-white/10 bg-black/30 hover:bg-white/5 cursor-pointer transition-all flex flex-col justify-between';
+      if (cardS) cardS.className = proto === 'shadowsocks' ? 'p-3.5 rounded-2xl border border-purple-500/40 bg-purple-500/10 cursor-pointer transition-all flex flex-col justify-between' : 'p-3.5 rounded-2xl border border-white/10 bg-black/30 hover:bg-white/5 cursor-pointer transition-all flex flex-col justify-between';
+
+      // Auto update defaults
+      if (proto === 'vless') {
+        document.getElementById('wizInbName').value = 'VLESS REALITY Multi-Stream';
+        document.getElementById('wizInbPort').value = '8443';
+        document.getElementById('wizStreamTransport').value = 'grpc';
+        document.getElementById('wizStreamSecurity').value = 'reality';
+      } else if (proto === 'trojan') {
+        document.getElementById('wizInbName').value = 'Trojan XHTTP Camouflage';
+        document.getElementById('wizInbPort').value = '2087';
+        document.getElementById('wizStreamTransport').value = 'xhttp';
+        document.getElementById('wizStreamSecurity').value = 'tls';
+      } else if (proto === 'shadowsocks') {
+        document.getElementById('wizInbName').value = 'Shadowsocks AEAD-2022';
+        document.getElementById('wizInbPort').value = '9005';
+        document.getElementById('wizStreamTransport').value = 'tcp';
+        document.getElementById('wizStreamSecurity').value = 'none';
+      }
+    }
+
+    function wizardSelectMode(mode) {
+      wizardState.transportMode = mode;
+      const cardStd = document.getElementById('wizCardModeStandard');
+      const cardClk = document.getElementById('wizCardModeCloak');
+      const optStd = document.getElementById('wizStandardOptions');
+      const optClk = document.getElementById('wizCloakOptions');
+
+      if (mode === 'cloak_ws') {
+        cardClk.className = 'p-4 rounded-2xl border border-cyan-500/40 bg-cyan-500/15 cursor-pointer transition-all flex flex-col justify-between';
+        cardStd.className = 'p-4 rounded-2xl border border-white/10 bg-black/30 hover:bg-white/5 cursor-pointer transition-all flex flex-col justify-between';
+        optStd.classList.add('hidden');
+        optClk.classList.remove('hidden');
+      } else {
+        cardStd.className = 'p-4 rounded-2xl border border-white/20 bg-white/10 cursor-pointer transition-all flex flex-col justify-between';
+        cardClk.className = 'p-4 rounded-2xl border border-white/10 bg-black/30 hover:bg-white/5 cursor-pointer transition-all flex flex-col justify-between';
+        optStd.classList.remove('hidden');
+        optClk.classList.add('hidden');
+      }
+    }
+
+    function updateWizardReview() {
+      const proto = document.querySelector('input[name="wizProto"]:checked')?.value || 'vless';
+      const mode = document.querySelector('input[name="wizTransportMode"]:checked')?.value || 'standard';
+      const name = document.getElementById('wizInbName').value;
+      const port = document.getElementById('wizInbPort').value;
+      const host = document.getElementById('wizInbHost').value;
+      const clientEl = document.getElementById('wizClientId');
+      const clientText = clientEl.options[clientEl.selectedIndex]?.text || 'All Active Clients';
+
+      document.getElementById('revInbName').innerText = name;
+      document.getElementById('revProto').innerText = proto.toUpperCase();
+      document.getElementById('revMode').innerText = mode === 'cloak_ws' ? 'Cloak WS (Modular)' : 'Standard RVG (Native)';
+      document.getElementById('revEndpoint').innerText = `${host}:${port}`;
+      document.getElementById('revClient').innerText = clientText;
+
+      if (mode === 'cloak_ws') {
+        document.getElementById('revSecurity').innerText = `TLS (Mask: ${document.getElementById('wizCloakMaskSni').value})`;
+      } else {
+        const sec = document.getElementById('wizStreamSecurity').value.toUpperCase();
+        document.getElementById('revSecurity').innerText = sec;
+      }
+    }
+
+    async function wizardSubmit() {
+      const errorBox = document.getElementById('wizErrorBox');
+      const errorText = document.getElementById('wizErrorText');
+      if (errorBox) errorBox.classList.add('hidden');
+
+      const submitBtn = document.getElementById('wizBtnSubmit');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = `<span class="inline-block animate-spin">⟳</span> Deploying to Kernel...`;
+      }
+
+      const proto = document.querySelector('input[name="wizProto"]:checked')?.value || 'vless';
+      const mode = document.querySelector('input[name="wizTransportMode"]:checked')?.value || 'standard';
+      const name = (document.getElementById('wizInbName').value || '').trim();
+      const port = parseInt(document.getElementById('wizInbPort').value, 10);
+      const host = (document.getElementById('wizInbHost').value || window.location.hostname || 'railway.app').trim();
+
+      let payload = {
+        name,
+        protocol: proto,
+        port: port,
+        transportMode: mode
+      };
+
+      if (mode === 'cloak_ws') {
+        payload.transport = 'ws';
+        payload.security = 'tls';
+        payload.path = document.getElementById('wizCloakPath').value;
+        payload.cloakMaskSni = document.getElementById('wizCloakMaskSni').value;
+        payload.cloakEarlyData = document.getElementById('wizCloakEarlyData').value;
+        payload.fingerprint = document.getElementById('wizCloakFp').value;
+        payload.alpn = document.getElementById('wizCloakAlpn').value;
+        payload.sni = payload.cloakMaskSni;
+      } else {
+        payload.transport = document.getElementById('wizStreamTransport').value;
+        payload.security = document.getElementById('wizStreamSecurity').value;
+        payload.path = document.getElementById('wizStreamPath').value;
+        payload.sni = document.getElementById('wizStreamSni').value;
+      }
+
+      try {
+        const res = await fetch('/api/configurations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+
+        if (res.ok) {
+          showToast(`Inbound '${name}' deployed & active on port ${port}!`);
+          
+          // Refresh background state
+          fetchConfigurations();
+          fetchDashboardData();
+          fetchSubscriptions();
+
+          // Generate Authoritative URI for client
+          let targetUuid = '00000000-0000-0000-0000-000000000000';
+          let clientName = 'Default';
+          try {
+            const clientRes = await fetch('/api/clients');
+            const clientData = await clientRes.json();
+            const chosenId = document.getElementById('wizClientId').value;
+            let chosen = clientData.clients?.find(c => c.id === chosenId);
+            if (!chosen && clientData.clients?.length > 0) {
+              chosen = clientData.clients[0];
+            }
+            if (chosen) {
+              targetUuid = chosen.uuid;
+              clientName = chosen.email.split('@')[0];
+            }
+          } catch (e) {
+            console.error('Error fetching client uuid:', e);
+          }
+
+          let authoritativeUri = '';
+          const tag = encodeURIComponent(`EMLESS-${name}-${clientName}`);
+
+          if (proto === 'vless') {
+            const sec = payload.security || 'reality';
+            const tr = payload.transport || 'tcp';
+            if (mode === 'cloak_ws') {
+              authoritativeUri = `vless://${targetUuid}@${host}:${port}?type=ws&security=tls&path=${encodeURIComponent(payload.path)}&sni=${encodeURIComponent(payload.cloakMaskSni || host)}&fp=${payload.fingerprint || 'chrome'}&alpn=${encodeURIComponent(payload.alpn || 'h2,http/1.1')}#${tag}`;
+            } else if (sec === 'reality') {
+              authoritativeUri = `vless://${targetUuid}@${host}:${port}?type=${tr}&security=reality&pbk=x_rvgPublicRealityKeyBlake3Ed25519Secured001&fp=chrome&sni=${encodeURIComponent(host)}&sid=1a2b3c4d&spx=%2F#${tag}`;
+            } else {
+              authoritativeUri = `vless://${targetUuid}@${host}:${port}?type=${tr}&security=${sec}&sni=${encodeURIComponent(host)}#${tag}`;
+            }
+          } else if (proto === 'trojan') {
+            authoritativeUri = `trojan://${targetUuid}@${host}:${port}?security=${payload.security}&type=${payload.transport}&sni=${encodeURIComponent(host)}#${tag}`;
+          } else if (proto === 'shadowsocks') {
+            const creds = btoa(`2022-blake3-aes-128-gcm:${targetUuid}`);
+            authoritativeUri = `ss://${creds}@${host}:${port}#${tag}`;
+          } else {
+            authoritativeUri = `vless://${targetUuid}@${host}:${port}?security=tls#${tag}`;
+          }
+
+          document.getElementById('wizResultPayload').value = authoritativeUri;
+          const qrCanvas = document.getElementById('wizQrCanvas');
+          qrCanvas.innerHTML = '';
+          new QRCode(qrCanvas, {
+            text: authoritativeUri,
+            width: 150,
+            height: 150,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+
+          wizardShowStep(7);
+        } else {
+          // Backend returned an error
+          const errMsg = data.error || 'Failed to deploy configuration to kernel';
+          if (errorBox && errorText) {
+            errorText.innerText = errMsg;
+            errorBox.classList.remove('hidden');
+          }
+          showToast(`Deployment error: ${errMsg}`, 'error');
+        }
+      } catch (e) {
+        const msg = 'Network error connecting to EMLESS backend';
+        if (errorBox && errorText) {
+          errorText.innerText = msg;
+          errorBox.classList.remove('hidden');
+        }
+        showToast(msg, 'error');
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = `⚡ Deploy Configuration`;
+        }
+      }
+    }
+
+    function handleWizardSubmit(e) {
+      e.preventDefault();
+      wizardSubmit();
+    }
+
+    // Transport View Fetcher
+    async function fetchTransport() {
+      try {
+        const res = await fetch('/api/transports');
+        if (!res.ok) return;
+        const data = await res.json();
+        console.log('Transports data loaded:', data);
+      } catch (err) {
+        console.error('Error fetching transports:', err);
+      }
+    }
+
+    function closeModals() {
+      document.querySelectorAll('[id^="modal"]').forEach(m => m.classList.add('hidden'));
+    }
+
+    function copyToClipboard(text, label = 'Copied to clipboard!') {
+      if (!text) return;
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(() => {
+          showToast(label);
+        }).catch(() => {
+          fallbackCopyText(text, label);
+        });
+      } else {
+        fallbackCopyText(text, label);
+      }
+    }
+
+    function fallbackCopyText(text, label) {
+      try {
+        const el = document.createElement('textarea');
+        el.value = text;
+        el.style.position = 'fixed';
+        el.style.opacity = '0';
+        document.body.appendChild(el);
+        el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        showToast(label);
+      } catch (err) {
+        showToast('Failed to copy', 'error');
+      }
+    }
+
+    function copyModalQrPayload() {
+      const text = document.getElementById('modalQrPayload').value;
+      copyToClipboard(text, 'Subscription content copied to clipboard!');
+    }
+
+    // Modal Form Submissions
+    document.getElementById('formAddClient')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const email = document.getElementById('newClientEmail').value;
+      const quotaGB = document.getElementById('newClientQuota').value;
+      const expiryDays = document.getElementById('newClientExpiry').value;
+
+      try {
+        const res = await fetch('/api/clients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, quotaGB, expiryDays })
+        });
+        if (res.ok) {
+          showToast(`Client ${email} created successfully!`);
+          closeModals();
+          fetchClients();
+          fetchSubscriptions();
+          fetchTraffic();
+        } else {
+          const err = await res.json();
+          showToast(err.error || 'Failed to create client', 'error');
+        }
+      } catch (err) {
+        showToast('Network error creating client', 'error');
+      }
+    });
+
+    // Start App Check
+    checkAuthSession();
+  </script>
+</body>
+</html>

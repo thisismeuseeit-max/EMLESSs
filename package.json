@@ -1,0 +1,21 @@
+{
+  "name": "rvg-gateway",
+  "version": "9.2.0",
+  "type": "module",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "build": "echo 'Build step completed'",
+    "lint": "node --check server.js src/routes/api.js src/services/rvgCore.js src/services/telegramProxy.js src/db/storage.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dependencies": {
+    "cookie-parser": "^1.4.6",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^4.18.2",
+    "pg": "^8.23.0"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "name": "EMLESS",
+  "description": "EMLESS is a unified network management panel and control center built on the RVG core with modular transport layers (Standard RVG & Cloak WS), integrated Telegram MTProto Proxy services, VLESS REALITY, Trojan XHTTP, client quotas, and glass-morphism dashboard.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
